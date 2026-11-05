@@ -1,0 +1,146 @@
+# CLAUDE.md: Study Tracker
+
+Project context for Claude Code. Read this fully before changing anything. Update the "Status" and "Open items" sections whenever they change.
+
+## 1. What this is
+
+A desk gadget David is building as a **gift for his girlfriend, a medical student**. Repo: https://github.com/DavidMihic/study-tracker
+
+History of the idea (matters for design decisions):
+- It started as a Pomodoro timer. She rejected it because **forced interruptions** break her flow.
+- Current concept: a **soft Pomodoro + study tracker**. Nothing may ever force-stop or interrupt her.
+- She is **not technical**. UI must be obvious: one dial, one button, clear screens. No exam-countdown-style features.
+
+### Intended behaviour
+1. **Study session**: a count-up timer. At the target time (default ~25 min, configurable) it gives a **gentle nudge** (soft beep and/or visual cue) but keeps counting. The session ends only when she **presses the dial**. Then a break phase starts (count-down or count-up, to be decided).
+2. **Study tracker**: a scrollable list of subjects, **hard-coded in firmware for all future semesters**. Per subject, store the **number of sessions and total time**. Save to flash **only when a session ends** (limits flash wear).
+3. **RTC (DS3231)**: clock, daily and weekly views. Store the **session start timestamp** so a session can be **resumed after power loss** (device is USB-powered only, so it may be unplugged mid-session).
+4. **Screensaver** after idle: ECG-heartbeat animation plus clock.
+5. Buzzer for nudges and UI feedback. Backlight dimming via PWM (depends on the hardware decision in section 4).
+
+## 2. Hard decisions already made (do not relitigate without asking)
+
+- **MCU: Adafruit Feather RP2040** (the plain one, with headers soldered on). Not ESP32, not Pico.
+- **No battery. USB-C powered only.** David owns a 3000 mAh Li-ion cell but kept it for another project. The battery section of the schematic is preserved in git: tag `schematic-with-battery`. **Do not add battery code** (no VBAT divider, no percent display, no charge logic). Note there is no battery fuel gauge on this Feather anyway.
+- **Display: 2.0" ST7789, 240x320, SPI** (Estardyn module from AliExpress). The Nokia 5110 and the 3461AS 7-segment display were only used as bench readouts and are **not** part of the design.
+- **Input: one EC11 rotary encoder with push switch** (cheap, AliExpress, bare part, not a breakout board). No pots, no extra buttons.
+- **Buzzer: MH-FMD active buzzer module, low-level trigger.**
+- **RTC: DS3231 module** (ZS-042-style, AT24C32 EEPROM on board). A DS1307 was rejected because it is 5 V only.
+- **Power switch: SS12D00 SPDT slide switch** wired between the Feather's **EN pin and GND**. Switch closed = EN low = 3.3 V regulator off. Note USB/BAT pins stay powered; it is a soft "off" only.
+- **Toolchain: PlatformIO in VS Code**, arduino-pico core (Earle Philhower), C++. Not the Arduino IDE.
+- **Learning-oriented, budget-friendly.** David knows C++, Altium and CAD, owns a Prusa printer. Prefer clear, readable code over clever code, and explain non-obvious choices briefly.
+- Enclosure: 3D-printed, with a **bottom panel held by 4 screws into heat-set inserts**. The Feather is mounted upside-down so removing the bottom panel exposes it (BOOTSEL is on the opposite side from the USB-C port).
+
+## 3. Toolchain
+
+`platformio.ini` (user's working config):
+
+```ini
+[env:adafruit_feather]
+platform = https://github.com/maxgerhardt/platform-raspberrypi.git
+board = adafruit_feather
+framework = arduino
+board_build.core = earlephilhower
+monitor_speed = 115200
+upload_protocol = mbed
+lib_deps =
+    adafruit/Adafruit GFX Library
+    adafruit/Adafruit ST7735 and ST7789 Library
+    adafruit/RTClib
+```
+
+- `upload_protocol = mbed` performs an automatic 1200-baud reset into the bootloader and copies the UF2. **No BOOTSEL press is needed normally.** BOOTSEL is only a fallback if the sketch hung, USB is disabled, or deep sleep is active.
+- The default picotool route failed on David's Windows machine (needs a Zadig driver). Do not switch back to it.
+- Serial: guard prints with `if (Serial)` so the device runs fine with no PC attached.
+- Repo layout (suggested): `firmware/`, `hardware/` (Altium), `enclosure/`, `docs/`. `.gitignore` covers PlatformIO (`.pio`), VS Code and Altium (`__Previews`, `History`).
+
+## 4. Hardware reference
+
+### Pin map (GPIO numbers; the board silkscreen differs, see gotchas)
+
+| Function | Net | GPIO | Feather silk |
+|---|---|---|---|
+| LCD clock | LCD_SCK | 18 | SCK |
+| LCD data (MOSI) | LCD_MOSI | 19 | MO |
+| LCD chip select | LCD_CS | 10 | 10 |
+| LCD data/command | LCD_DC | 11 | 11 |
+| LCD reset | LCD_RST | 12 | 12 |
+| LCD backlight | LCD_BL | 9 | 9 |
+| Encoder A | ENC_A | 7 | 5 |
+| Encoder B | ENC_B | 8 | 6 |
+| Encoder push | ENC_SW | 24 | 24 |
+| Buzzer | BUZZ | 25 | 25 |
+| RTC SDA | RTC_SDA | 2 | SDA |
+| RTC SCL | RTC_SCL | 3 | SCL |
+| Power switch | RP_EN | n/a | EN to GND |
+
+Free pins: A0..A3 (GPIO26..29), MISO (20), RX (1), TX (0), silk 4 (GPIO6), D13.
+
+### Gotchas (all learned the hard way)
+- **Silkscreen is not GPIO.** Silk 4 = GPIO6, silk 5 = GPIO7, silk 6 = GPIO8, silk 9..13 = GPIO9..13, A0..A3 = GPIO26..29, SCK/MO/MI = 18/19/20. The code uses GPIO numbers.
+- **I2C:** SDA/SCL pins are I2C1 on this board, in practice `Wire` works with `setSDA(2)`/`setSCL(3)` (verified on the bench); `Wire1` is only a fallback. The bring-up sketch tries both (`pickI2C()`).
+- **PWM slice sharing:** GPIO9 (backlight) and GPIO25 (buzzer) are both on PWM slice 4 channel B. Do not run PWM on both at different frequencies. The buzzer is active (no PWM tone needed), so drive it digitally.
+- **Buzzer is active and low-level triggered:** HIGH = silent, LOW = beep. Power it from **3V3, not 5V**. GPIO pins default low at boot, which would beep, so schematic has **R5 = 4.7k pull-up to 3V3** on BUZZ and the code sets HIGH first in `setup()`. The sticker on the buzzer must be peeled (it was the cause of the faint sound).
+- **ST7789 library inverts colours by default** on these modules; if colours look wrong use `tft.invertDisplay(false)` (`TFT_UNINVERT` toggle in bring-up sketch). Use `tft.init(240, 320)`, set SPI speed **after** init (16 MHz works as default), `setRotation(1)` for landscape.
+- **Backlight:** options chosen by `BL_MODE` in the bring-up sketch: 0 = BL pin tied to 3V3 (always on); 1 = via Q1 PNP high-side (GPIO LOW = on, PWM must be inverted: `analogWrite(pin, 255 - brightness)`); 2 = direct from GPIO (HIGH = on). **Backlight current has not been measured yet** (meter in series from 3V3 to BL). If it is under about 10 mA, Q1 can be skipped. Use `analogWriteFreq(20000)` to avoid audible whine.
+- **Display, verified on the bench (2026-11-05):** colours, rotation (`setRotation(1)`, 320x240 landscape) and inversion at the library default are correct. Bring-up code: `software/bringup/display_test.cpp` (env `display_test`; control over serial, `h` for help). The datasheet `ST7789VI.PDF` (Sitronix v1.4, in the repo root) has no instant-refresh mode: pixels are written serially into the controller's frame memory, and the TE (tearing-effect) pin is not broken out on this 8-pin module, so the sweep cannot be synced away. Min write clock cycle is 16 ns (62.5 MHz) per the datasheet. At size 5 text, 11 characters (330 px) do not fit the 320 px width, so keep strings short in the UI (6 px per character per text size).
+- **DS3231 module:** I2C addresses 0x68 (RTC) and 0x57 (EEPROM). Onboard 4.7k pull-ups. Has a charging diode plus 200 ohm ("201") path to the coin cell. At 3.3 V with a CR2032 it is harmless; optionally remove the diode for the final build. RTClib: `rtc.begin(&Wire)` (see the verified note in open item 5); if `lostPower()` set to compile time. Pins 32K and SQW are unconnected.
+- **EN pin low** disables the 3.3 V regulator only; the Feather does not draw from USB for the MCU then, but BAT/USB pins stay live.
+- **3V3 regulator limit:** about 500 mA peak. Current budget is comfortably below that.
+- BOOTSEL is on GPIO4 (Rev D+) and is **not exposed**; RESET/BOOTSEL are only reachable by removing the bottom panel.
+
+### Schematic (Altium, final, reviewed)
+Blocks/parts: U1 Feather; SW1 SS12D00 (EN to GND); BZ1 MH-FMD + R5 4k7 pull-up; J1 ST7789 header (pins in order: GND, VDD, SCL, SDA, RES, DC, CS, BL); Q1 BC557 + R3 1k (base) + R4 10k (pull-up from base to emitter side) for optional backlight switching; SW2 EC11 with C2..C4 100 nF (debounce, from A, B, SW to GND; see EC11 note, they are not fitted); U2 DS3231 module. Power ports 3V3 and GND. The battery section exists only in the tagged commit.
+
+Display to perfboard: 8-pin female header on the perfboard plus short male-to-female Dupont jumpers with strain relief (the module cannot be soldered flat because it is angled). Male header is soldered on the display module.
+
+### Component notes
+- **EC11 (cheap, 5 units owned):** pins: 2-pin side = push switch (works well); 3-pin side = A, common (middle), B. Common goes to GND, A/B use internal pull-ups (`INPUT_PULLUP`). **Measured (2026-11-05):** 20 detents per revolution, each click is one full quadrature cycle (4 steps, rest state `11`), so the full-step table decoder gives exactly one event per click and `STEPS_PER_DETENT` is effectively 4. The first pin to close stays closed for tens of ms, the second only 2 to 5 ms (so a multimeter continuity beep only catches one pin per direction; this is normal). Contacts bounce heavily on the first pin (dozens of edges, 5 us to hundreds of us gaps) and some clicks stall at the half-closed position; the table decoder ignores both. Direction/wiring (verified): holding the encoder with the 3 pins pointing towards you, the **middle pin goes to GND, the left pin to GPIO8 (ENC_B) and the right pin to GPIO7 (ENC_A)**. With this wiring the `bringup2`-style table decoder (`pins = (B<<1)|A`) reports CW = +1 and CCW = -1. (My earlier claim from the raw log that the wires needed swapping was wrong: David tried the swap, it counted backwards, and he reverted it. The raw logger's sign convention is opposite to the decoder's, so do not use it to infer direction.) The decoder test passed on hardware, **Decision (2026-11-05): no debounce caps on A/B.** Tests without caps were clean (table decoder ignores the bounce); with 100 nF caps fitted the encoder skipped clicks, since the second contact only closes for 2 to 5 ms. Leave C2/C3 unpopulated (DNP); keeping the footprints is optional in the schematic, David's call (the schematic still lists C2..C4 as 100 nF, code and schematic differ here, flag when revisiting). Push switch is debounced in software, so C4 is not needed either (not tested with the cap). If caps are ever reconsidered, try 10 nF or less. Known limitation: spinning the dial very fast back and forth can drift so position does not return to 0. Accepted: nothing may depend on absolute encoder position, menus use relative movement. **Push switch (verified 2026-11-05, no cap):** wired between GPIO24 and GND (either pin), `INPUT_PULLUP`. 20 presses gave exactly 20 clicks. Pressing is clean; only the release bounces (under 200 us, a few edges), so the 25 ms software debounce is enough and C4 is not needed. Long press (800 ms) fires once while held, with no click on release. Typical press durations are 120 to 250 ms. Only the one encoder in use was tested; the other four are spares.
+- **BC557 (PNP):** datasheet pinouts are drawn looking at the **flat face** (C-B-E left to right); David holds it round side toward him, so confirm orientation with a breadboard test (emitter to 3V3, collector through LED + 330R to GND, base via 1k to GND; bright LED = right orientation).
+- **ST7789 module pins:** GND, VDD, SCL (clock), SDA (MOSI), RES, DC, CS, BL.
+
+## 5. Firmware plan
+
+Principles:
+- **Non-blocking**: `millis()`-based state machine in `loop()`; no `delay()` outside bring-up code.
+- Debounce in software; inputs polled or interrupt-fed into an event queue (encoder delta, button click, long press).
+- Encoder decoder: full-step quadrature state table (bounce tolerant), with a `STEPS_PER_DETENT` constant to adapt to the real part once the A/B sequence is logged. Push switch: 25 ms debounce, long press 800 ms.
+- UI via Adafruit GFX; **never redraw the whole screen** (decision 2026-11-05): redraw only changed regions. A full-screen fill takes 239 / 179 / 120 / 120 ms at 8 / 16 / 32 / 62.5 MHz SPI, which shows as a visible sweep. Use **32 MHz** as the default SPI speed (62.5 MHz is no faster; the Adafruit library is CPU-bound, not SPI-bound). Future option, not needed now: draw into a RAM framebuffer (153.6 KB of the RP2040's 264 KB) and push it in one bulk SPI transfer, or switch to a DMA-capable library; revisit only if the real UI looks bad.
+
+Suggested modules (`firmware/src/`): `pins.h`, `encoder`, `button`, `buzzer`, `display/ui`, `rtc_clock`, `storage`, `subjects`, `session` (state machine), `screensaver`, `main.cpp`.
+
+States (suggested): `HOME` (clock/day summary), `SUBJECT_SELECT`, `STUDYING` (count-up, nudge at target), `BREAK`, `STATS` (per subject/day/week), `SETTINGS` (target length, volume/brightness), `SCREENSAVER`.
+
+Storage (proposal, confirm with David):
+- Use arduino-pico `EEPROM` emulation or LittleFS in flash. Write **only on session end** (and settings change).
+- Give each subject a **stable numeric ID** so the hard-coded list can be reordered or extended later without invalidating saved data. Store `{id, sessions, totalSeconds}` records plus a version number and CRC. Handle empty or corrupt flash by resetting gracefully.
+- Active-session record (start timestamp from the RTC) so a session can resume after power loss; clear it when the session ends.
+- Subjects: hard-coded array in a separate `subjects.h`/`.cpp` so David can edit the list easily (he will fill in her actual curriculum).
+
+## 6. Status (as of 2026-11-05)
+
+Components arrived; David is doing **bench bring-up on a breadboard, no soldering yet** (only the male header on the display is soldered). Bring-up sketch: `bringup2/main.cpp` (toggles `TEST_DISPLAY`, `TEST_ENCODER`, `TEST_BUZZER`, `TEST_RTC`, `BL_MODE`, `TFT_UNINVERT`, `TFT_SPI_HZ`). It matches the final schematic's pin map and was compile-checked against stubs only, **not yet run on hardware beyond partial tests**.
+
+Done and verified: board choice, upload workflow, buzzer verified (sticker removed, silent at boot, patterns tested), schematic reviewed, display header soldered, power switch (EN to GND) verified, RTC verified, encoder push switch verified on hardware (see below), display works on breadboard (colours, rotation, backlight dimming, SPI up to 32 MHz), encoder rotation verified (decoder test, 20 clicks per revolution, no misses).
+
+## 7. Open items
+
+1. ~~Encoder rotation and push switch~~ done (see section 4). Remaining: after soldering, recheck rotation and push switch together (pressing while turning, no accidental triggers).
+2. ~~Display bring-up~~ done on the breadboard (see section 4, Display). Remaining: recheck after the real wiring is built (SPI stability at 32 MHz on short wires).
+3. ~~Backlight~~ done 2026-11-05: BL pin current is about 1 mA (10.4 mV across a 10 ohm series resistor, BL to 3V3), so GPIO9 drives it directly (`BL_MODE 2`), no Q1/R3/R4 (the schematic still has them, flag when revising it). PWM dimming verified at 20 kHz: 8 is the dimmest (still readable), 255 is bright. Brightness must be a **user setting adjustable on the fly** in the product (clamp to a minimum of 8 so the screen is never dark).
+4. Verify BC557 orientation on the breadboard (see above) if Q1 is used.
+5. RTC verified 2026-11-05 (`software/bringup/rtc_test.cpp`, env `rtc_test`): DS3231 found on the I2C bus with the CR2032 fitted; time can be set over serial (`T2026-11-05 18:30:00`, or `c` for compile time; the serial monitor in use sends text without a line ending, so the sketch also runs a command 300 ms after the last character); time survives USB unplug, the EN power switch and re-uploads. Still to check: drift over several hours against a reference. In the product only call `rtc.adjust()` when `lostPower()` is true or the user sets the time; poll the RTC several times per second and redraw only when the second changes (the test sketch prints on its own 1 s timer, so its line can appear up to a second off the real tick; that is not clock error). **I2C bus: `Wire`** (verified), with `Wire.setSDA(2); Wire.setSCL(3);` before `rtc.begin(&Wire)`. `Wire1` is not needed.
+6. ~~Buzzer~~ verified 2026-11-05 (`software/bringup/buzzer_test.cpp`, env `buzzer_test`): silent at boot/power cycle, all beep patterns clean (click 15 ms, short 60 ms, long 300 ms, nudge = 3 x 80 ms beeps with 120 ms gaps, train), unaffected by backlight PWM on GPIO9 (shared PWM slice is not a problem with the buzzer driven digitally). **R5 (4.7k pull-up to 3V3) was fitted for these tests. Without it the buzzer beeps at boot (confirmed on the bench); with it, silent. R5 is required.** Nudge is a bit loud on the open bench; judge again inside the enclosure, and if still too loud consider a series resistor or damping foam (not tested).
+7. Git: the tag `schematic-with-battery` must point at the **last commit that still contains the battery schematic**, not the commit that removed it. Check with `git log --oneline -- hardware/`, then `git tag -d`, retag the right commit, and fix the remote with `git push origin --delete schematic-with-battery` followed by `git push origin schematic-with-battery`.
+8. Write the actual firmware (section 5) and test with the real display.
+9. Enclosure CAD: measure modules with calipers (display, perfboard, Feather, DS3231), USB-C cutout, coin-cell access for RTC, ventilation (optional), M-screw and heat-set insert bosses, knob for EC11 (mounting washers/hex nuts included with the encoder), double-sided foam tape for mounting.
+10. Perfboard layout (or later a custom Altium PCB).
+
+## 8. How to work with David
+
+- He prefers **VS Code + PlatformIO**; do not suggest the Arduino IDE.
+- He is learning: briefly explain the *why*, keep steps concrete, avoid assuming electronics experience beyond what he has shown (schematics in Altium are comfortable for him).
+- **Do not assert facts about hardware from memory when it matters.** Where a datasheet or measurement is needed (pinouts, currents), say so and ask him to check. Several earlier mistakes came from confident guesses.
+- Do not make changes to the schematic or pin map without flagging it. The pin map above is the reference; if code and schematic disagree, tell him.
+- Small, testable steps. Keep bring-up code separate from the product firmware (e.g. `firmware/bringup/`). Current layout is `software/` (PlatformIO project): `software/bringup/encoder_test.cpp` (raw A/B gesture logger, env `encoder_test`) and `software/bringup/encoder_decoder_test.cpp` (decoder test, env `encoder_decoder`), `software/bringup/button_test.cpp` (push switch, env `button_test`). Each bring-up env uses `build_src_filter` to build only its file; upload with `pio run -e <env> -t upload`.
+- Do not commit or push unless asked. Hardware files in `hardware/` are David's (Altium); do not edit them.
