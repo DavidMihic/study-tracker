@@ -58,6 +58,15 @@ size_t buildElectives(View view, size_t* out, size_t maxEntries) {
   return n;
 }
 
+size_t buildStudied(size_t* out, size_t maxEntries) {
+  size_t n = 0;
+  for (size_t i = 0; i < Subjects::count() && n < maxEntries; i++) {
+    if (Progress::hasStats(i)) out[n++] = i;
+  }
+  sortList(out, n);
+  return n;
+}
+
 int find(const size_t* list, size_t count, size_t subjectIndex) {
   for (size_t i = 0; i < count; i++) {
     if (list[i] == subjectIndex) return (int)i;

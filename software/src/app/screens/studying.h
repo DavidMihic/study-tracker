@@ -26,4 +26,9 @@ class StudyingScreen : public Screen {
   bool redraw_ = true;
   Shown shown_ = Shown::Running;
   bool statusDrawn_ = false;
+
+  // Power came back while the block was running: beep until she touches the device, so the block can
+  // never sit paused unnoticed.
+  bool alertActive_ = false;
+  uint32_t nextAlertMs_ = 0;
 };

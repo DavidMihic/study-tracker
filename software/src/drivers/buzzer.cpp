@@ -10,6 +10,7 @@ const Step kClick[] = {{15, 0}};
 const Step kShort[] = {{60, 0}};
 const Step kLong[]  = {{300, 0}};
 const Step kNudge[] = {{80, 120}, {80, 120}, {80, 0}};
+const Step kAlert[] = {{220, 140}, {220, 140}, {220, 0}};
 
 template <size_t N>
 constexpr uint8_t countOf(const Step (&)[N]) { return N; }
@@ -41,6 +42,7 @@ void play(Pattern pattern) {
     case Pattern::Short: steps = kShort; stepCount = countOf(kShort); break;
     case Pattern::Long:  steps = kLong;  stepCount = countOf(kLong);  break;
     case Pattern::Nudge: steps = kNudge; stepCount = countOf(kNudge); break;
+    case Pattern::Alert: steps = kAlert; stepCount = countOf(kAlert); break;
   }
   stepIndex = 0;
   setSound(true);

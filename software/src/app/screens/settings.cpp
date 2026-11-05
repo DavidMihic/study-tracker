@@ -1,6 +1,7 @@
 #include "app/screens/settings.h"
 #include "app/app_state.h"
 #include "app/navigation.h"
+#include "app/persistence.h"
 #include "config/study_rules.h"
 #include "data/progress.h"
 #include "drivers/backlight.h"
@@ -28,13 +29,14 @@ bool clockCanBeSet() { return AppState::session().phase() == Session::Phase::Idl
 
 const char* labelOf(uint8_t row) {
   switch (row) {
-    case 1: return Strings::kSettingBrightness;
-    case 2: return Strings::kSettingSemester;
-    case 3: return Strings::kSettingTarget;
+    case 1: return Strings::kSettingSemester;
+    case 2: return Strings::kSettingTarget;
+    case 3: return Strings::kSettingBrightness;
     case 4: return Strings::kSettingSound;
     case 5: return Strings::kSettingClock;
+    case 6: return Strings::kSettingReset;
   }
-  return Strings::kBack;   // rows 0 and 6
+  return Strings::kBack;   // rows 0 and 7
 }
 
 // Brightness is shown in whole percent and moves in steps of 5 %. The backlight itself uses 0..255,
@@ -64,7 +66,7 @@ void SettingsScreen::enter() {
   // Coming back from a submenu keeps the row she was on; a fresh visit starts on the first setting
   // (row 0 is "Natrag", there so that leaving needs no long scroll).
   if (!comingFromSubmenu_) {
-    selected_ = kBrightness;
+    selected_ = kSemester;
     top_ = 0;
   }
   comingFromSubmenu_ = false;
@@ -97,6 +99,7 @@ void SettingsScreen::changeValue(int delta) {
       if (percent < kBrightnessStepPercent) percent = kBrightnessStepPercent;   // never fully dark
       if (percent > 100) percent = 100;
       Backlight::set(percent * 255 / 100);
+      Progress::setBrightness(Backlight::get());
       break;
     }
     case kSemester:
@@ -126,6 +129,7 @@ void SettingsScreen::onEvent(const Input::Event& event) {
     case Input::Event::Type::Turn:
       if (editing_) {
         changeValue(event.delta);
+        Persistence::requestSave();   // waits until the dial stops moving, so a spin is one write
       } else {
         int target = (int)selected_ + event.delta;
         if (target < 0 || target >= (int)kRowCount) break;
@@ -146,6 +150,12 @@ void SettingsScreen::onEvent(const Input::Event& event) {
         Sound::press();
         comingFromSubmenu_ = true;
         Nav::go(ScreenId::SoundSettings);
+        return;
+      }
+      if (selected_ == kReset) {
+        Sound::press();
+        comingFromSubmenu_ = true;
+        Nav::go(ScreenId::Reset);
         return;
       }
       if (selected_ == kClock) {
@@ -189,7 +199,7 @@ void SettingsScreen::drawRows() {
     valueText(row, value, sizeof value);
 
     // Rows that open another screen start with a dimmed icon: a return arrow, or a left triangle for Back.
-    bool submenu = (row == kSound) || (row == kClock && clockCanBeSet());
+    bool submenu = (row == kSound) || (row == kReset) || (row == kClock && clockCanBeSet());
     if (submenu) label_[r].setIcon(Icon::Return, Colors::kDim, TextField::IconSide::Before);
     else if (row == kBack || row == kBackTop) label_[r].setIcon(Icon::BackSmall, Colors::kDim, TextField::IconSide::Before);
     else label_[r].clearIcon();

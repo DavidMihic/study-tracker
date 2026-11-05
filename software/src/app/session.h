@@ -38,6 +38,26 @@ class Session {
   // Break is over (back to the home screen or into a new block).
   void endBreak();
 
+  // For saving to flash. A snapshot is only meaningful while a study block is running or paused.
+  struct Snapshot {
+    bool active;                 // false when idle or in a break: nothing to resume
+    size_t subjectIndex;
+    uint32_t accumulatedSeconds;
+    uint32_t runStartUnix;
+    bool running;
+    uint32_t checkpointUnix;
+  };
+  Snapshot snapshot() const;
+
+  // Remembers "the device is running right now" (called before saving; only matters while running).
+  void checkpoint(uint32_t nowUnix);
+
+  // Brings back a block after a power cut: it comes back PAUSED. If it was running, the time up to the
+  // last checkpoint counts for sure. If the device is back within StudyRules::kResumeTrustSeconds of
+  // that checkpoint, the time until now counts too (the interruption was short); otherwise the time
+  // after the checkpoint is lost. nowUnix = 0 means the clock is not available (counts to the checkpoint).
+  void restorePaused(const Snapshot& snapshot, uint32_t targetSeconds, uint32_t nowUnix);
+
   size_t subjectIndex() const { return subjectIndex_; }
   uint32_t targetSeconds() const { return targetSeconds_; }
 
@@ -49,4 +69,5 @@ class Session {
   bool running_ = false;       // false while paused
   uint32_t targetSeconds_ = 0;
   bool nudgeFired_ = false;
+  uint32_t checkpoint_ = 0;    // last time the block was known to be running
 };

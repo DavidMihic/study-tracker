@@ -16,6 +16,11 @@ constexpr uint8_t kDefaultSemester  = 5;
 // would otherwise add a "session" of a few seconds). Set to 0 to count everything.
 constexpr uint32_t kMinCountedSessionSeconds = 60;
 
+// After a power cut a running block is restored (paused). If the device is back no later than this
+// after its last checkpoint, the block is assumed to have been running the whole time and the time that
+// passed counts; later than that, only the time up to the last checkpoint counts.
+constexpr uint32_t kResumeTrustSeconds = 15 * 60;
+
 // The gentle nudge comes at this length; the session keeps running. Adjustable in the settings.
 constexpr uint16_t kDefaultTargetMinutes = 25;
 constexpr uint16_t kMinTargetMinutes     = 5;

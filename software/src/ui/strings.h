@@ -38,6 +38,7 @@ constexpr const char* kSwitchQuestion    = "Prebaciti na %u. semestar?";
 // ---- Studying ----
 constexpr const char* kTargetFormat      = "Cilj: %u min";
 constexpr const char* kTargetReached     = "Cilj postignut, možeš nastaviti";
+constexpr const char* kRestoredNotice  = "Vraćeno nakon prekida napajanja";
 constexpr const char* kPaused            = "Pauzirano";
 
 // ---- Break ----
@@ -53,10 +54,12 @@ constexpr const char* kSettingTarget     = "Cilj učenja";
 constexpr const char* kSettingSound     = "Zvuk";
 constexpr const char* kSoundTitle        = "Zvuk";
 constexpr const char* kSoundHint         = "Klik: uključi / isključi";
+constexpr const char* kSettingReset      = "Poništi brojače";
 constexpr const char* kSettingClock     = "Datum i vrijeme";
 constexpr const char* kClockLocked       = "nije moguće";   // while a study block or break is running
 constexpr const char* kSettingSoundTurn  = "Zvuk kotačića";
 constexpr const char* kSettingSoundPress = "Zvuk tipke";
+constexpr const char* kSettingSoundRestore = "Upozorenje o prekidu";
 constexpr const char* kSettingSoundNudge = "Zvuk podsjetnika";
 constexpr const char* kOn                = "Uključeno";
 constexpr const char* kOff               = "Isključeno";
@@ -64,6 +67,17 @@ constexpr const char* kBrightnessFormat  = "%u %%";
 constexpr const char* kSemesterFormat    = "%u. semestar";
 constexpr const char* kSettingsHint      = "Klik: izmijeni";
 constexpr const char* kSettingsEditHint  = "Okreni: promijeni   Klik: gotovo";
+
+// ---- Reset counters ----
+constexpr const char* kResetTitle        = "Poništi brojače";
+constexpr const char* kResetOne          = "Jedan predmet";
+constexpr const char* kResetAll          = "Svi predmeti";
+constexpr const char* kResetListTitle    = "Odaberi predmet";
+constexpr const char* kResetNone         = "Nema zapisanog vremena";
+constexpr const char* kResetQuestionOne  = "Poništiti brojače za:";
+constexpr const char* kResetQuestionAll  = "Poništiti SVE predmete?";
+constexpr const char* kResetDetails      = "Vrijeme: %s   Sesije: %u";
+constexpr const char* kCardReset         = "Poništi";
 
 // ---- Set date and time ----
 constexpr const char* kClockSetTitle     = "Postavi sat";

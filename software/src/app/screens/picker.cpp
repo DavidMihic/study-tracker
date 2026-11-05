@@ -1,5 +1,7 @@
 #include "app/screens/picker.h"
+#include "app/app_state.h"
 #include "app/navigation.h"
+#include "app/persistence.h"
 #include "app/semester.h"
 #include "config/study_rules.h"
 #include "data/progress.h"
@@ -58,8 +60,18 @@ void PickerScreen::redrawScreen() {
 }
 
 void PickerScreen::enter() {
-  mode_ = Mode::Main;
+  // The reset flow opens the picker with a different purpose (read once).
+  bool resetPick = AppState::pickerPurpose() == AppState::PickerPurpose::ResetOne;
+  AppState::pickerPurpose() = AppState::PickerPurpose::ChooseSubject;
+
+  mode_ = resetPick ? Mode::ResetList : Mode::Main;
   redrawScreen();
+  if (resetPick) {
+    rebuild();
+    selected_ = 0;
+    top_ = 0;
+    return;
+  }
 
   // Start on her current semester, with the subject she studies now selected.
   uint8_t semester = Progress::currentSemester();
@@ -75,6 +87,7 @@ void PickerScreen::enter() {
 
 void PickerScreen::chooseSubject(size_t subjectIndex) {
   Progress::setLastSubject(subjectIndex);
+  Persistence::requestSave();   // also covers a semester switch made just before
   Sound::press();
   Nav::go(ScreenId::Home);
 }
@@ -136,6 +149,12 @@ void PickerScreen::rebuild() {
     }
     case Mode::Electives: {
       size_t n = SubjectList::buildElectives(view_, list, Subjects::kMaxSubjects);
+      for (size_t i = 0; i < n; i++) add(Item::Kind::Subject, list[i]);
+      add(Item::Kind::Back);
+      break;
+    }
+    case Mode::ResetList: {
+      size_t n = SubjectList::buildStudied(list, Subjects::kMaxSubjects);
       for (size_t i = 0; i < n; i++) add(Item::Kind::Subject, list[i]);
       add(Item::Kind::Back);
       break;
@@ -223,6 +242,12 @@ void PickerScreen::onEvent(const Input::Event& event) {
       const Item item = items_[selected_];
       switch (item.kind) {
         case Item::Kind::Subject:
+          if (mode_ == Mode::ResetList) {          // go on to the confirmation screen
+            Sound::press();
+            AppState::pendingResetSubject() = (int)item.subjectIndex;
+            Nav::go(ScreenId::Reset);
+            return;
+          }
           if (Semesters::number(view_.year, view_.semester) != Progress::currentSemester()) {
             Sound::press();
             startConfirm(item.subjectIndex);
@@ -256,6 +281,11 @@ void PickerScreen::onEvent(const Input::Event& event) {
           return;
 
         case Item::Kind::Back: {
+          if (mode_ == Mode::ResetList) {
+            Sound::press();
+            Nav::go(ScreenId::Reset);
+            return;
+          }
           if (mode_ == Mode::Main) {
             Sound::press();
             Nav::go(ScreenId::Home);
@@ -278,8 +308,9 @@ void PickerScreen::onEvent(const Input::Event& event) {
 
     case Input::Event::Type::LongPress: {
       const Item item = items_[selected_];
-      if (item.kind != Item::Kind::Subject) break;
+      if (item.kind != Item::Kind::Subject || mode_ == Mode::ResetList) break;
       Progress::toggleFavorite(item.subjectIndex);
+      Persistence::requestSave();
       rebuild();                                       // favourites move to the top: follow the subject
       int position = findSubject(item.subjectIndex);
       if (position >= 0) selected_ = (size_t)position;
@@ -336,11 +367,14 @@ void PickerScreen::drawHeader() {
     case Mode::Main:      Format::period(text, sizeof text, view_.year, view_.semester); break;
     case Mode::Electives: snprintf(text, sizeof text, "%s", Strings::kElectivesFolder); break;
     case Mode::Years:     snprintf(text, sizeof text, "%s", Strings::kYearTitle); break;
+    case Mode::ResetList: snprintf(text, sizeof text, "%s", Strings::kResetListTitle); break;
     default:              return;
   }
   header_.set(text);
   // Long press = favourite only exists for subjects, so the list of years does not mention it.
-  hint_.set(mode_ == Mode::Years ? Strings::kYearHint : Strings::kPickerHint);
+  bool simpleHint = (mode_ == Mode::Years || mode_ == Mode::ResetList);
+  bool nothingToReset = (mode_ == Mode::ResetList && itemCount_ <= 1);   // only the Back row
+  hint_.set(nothingToReset ? Strings::kResetNone : simpleHint ? Strings::kYearHint : Strings::kPickerHint);
 }
 
 void PickerScreen::describe(const Item& item, char* left, size_t leftSize, char* right, size_t rightSize,

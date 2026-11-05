@@ -12,7 +12,7 @@ class SoundSettingsScreen : public Screen {
   void update() override;
 
  private:
-  enum Row : uint8_t { kBackTop, kTurn, kPress, kNudge, kBack, kRowCount };
+  enum Row : uint8_t { kTurn, kPress, kNudge, kRestore, kBack, kRowCount };
 
   bool isOn(uint8_t row) const;
   void drawRows();

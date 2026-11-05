@@ -1,10 +1,13 @@
 #include "app/app.h"
+#include "app/app_state.h"
 #include "app/navigation.h"
+#include "app/persistence.h"
 #include "app/screens/break.h"
 #include "app/screens/home.h"
 #include "app/screens/picker.h"
 #include "app/screens/screen.h"
 #include "app/screens/clock_set.h"
+#include "app/screens/reset.h"
 #include "app/screens/settings.h"
 #include "app/screens/sound_settings.h"
 #include "app/screens/studying.h"
@@ -19,6 +22,7 @@ BreakScreen breakScreen;
 SettingsScreen settingsScreen;
 ClockSetScreen clockSetScreen;
 SoundSettingsScreen soundSettingsScreen;
+ResetScreen resetScreen;
 
 Screen* current = nullptr;
 
@@ -35,6 +39,7 @@ void go(ScreenId screen) {
     case ScreenId::Settings: current = &settingsScreen; break;
     case ScreenId::ClockSet: current = &clockSetScreen; break;
     case ScreenId::SoundSettings: current = &soundSettingsScreen; break;
+    case ScreenId::Reset: current = &resetScreen; break;
   }
   current->enter();
 }
@@ -43,7 +48,11 @@ void go(ScreenId screen) {
 
 namespace App {
 
-void begin() { Nav::go(ScreenId::Home); }
+void begin() {
+  // A study block that was running when the power was cut comes back (paused) instead of the home screen.
+  bool resume = AppState::session().phase() == Session::Phase::Studying;
+  Nav::go(resume ? ScreenId::Studying : ScreenId::Home);
+}
 
 void update() {
   Input::Event event;

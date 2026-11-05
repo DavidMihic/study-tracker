@@ -1,6 +1,7 @@
 #include "app/screens/home.h"
 #include "app/app_state.h"
 #include "app/navigation.h"
+#include "app/persistence.h"
 #include "app/semester.h"
 #include "app/subject_list.h"
 #include "data/progress.h"
@@ -108,6 +109,7 @@ void HomeScreen::onEvent(const Input::Event& event) {
       Progress::setLastSubject(index);
       uint32_t target = (uint32_t)Progress::targetMinutes() * 60;
       AppState::session().startStudy(Rtc::now().unixtime(), (size_t)index, target);
+      Persistence::saveNow();   // remembers the running block and the chosen subject
       Nav::go(ScreenId::Studying);
       return;
     }

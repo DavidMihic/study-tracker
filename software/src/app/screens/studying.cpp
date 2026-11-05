@@ -1,6 +1,7 @@
 #include "app/screens/studying.h"
 #include "app/app_state.h"
 #include "app/navigation.h"
+#include "app/persistence.h"
 #include "data/progress.h"
 #include "data/subjects.h"
 #include "ui/sound.h"
@@ -14,6 +15,10 @@ using Align = TextField::Align;
 using Display::Font;
 using Icons::Icon;
 
+namespace {
+constexpr uint32_t kAlertRepeatMs = 20000;   // the power-cut alert repeats until she touches the device
+}
+
 void StudyingScreen::enter() {
   Display::clear(Colors::kBackground);
 
@@ -24,7 +29,14 @@ void StudyingScreen::enter() {
 
   menu_.close();
   subject_.set(Subjects::at(AppState::session().subjectIndex()).name);
-  hint_.set(Strings::kMenuHint);
+  if (Persistence::restoredSession()) {     // opened right after a power cut
+    alertActive_ = Persistence::restoredWasRunning();
+    nextAlertMs_ = millis();
+    hint_.set(Strings::kRestoredNotice);
+    Persistence::acknowledgeRestored();
+  } else {
+    hint_.set(Strings::kMenuHint);
+  }
 
   statusDrawn_ = false;
   redraw_ = true;
@@ -54,12 +66,15 @@ void StudyingScreen::stopStudying() {
   last.seconds = length;
   last.counted = Session::isCounted(length);
   if (last.counted) Progress::recordSession(session.subjectIndex(), length);
+  Persistence::saveNow();   // the new total is saved and the running block is cleared
 
   Sound::pressLong();
   Nav::go(ScreenId::Break);
 }
 
 void StudyingScreen::onEvent(const Input::Event& event) {
+  alertActive_ = false;   // any touch means she has seen it
+
   // With the menu closed only a click does anything, and it only opens the menu, so a stray turn or
   // press can never change the session.
   if (!menu_.isOpen()) {
@@ -78,6 +93,7 @@ void StudyingScreen::onEvent(const Input::Event& event) {
     case 0:   // pause / resume
       if (session.isPaused()) session.resume(Rtc::now().unixtime());
       else session.pause(Rtc::now().unixtime());
+      Persistence::saveNow();
       closeMenu();
       redraw_ = true;
       break;
@@ -94,6 +110,11 @@ void StudyingScreen::onEvent(const Input::Event& event) {
 void StudyingScreen::update() {
   Session& session = AppState::session();
   if (menu_.isOpen() && menu_.update(millis()) == CardMenu::Result::TimedOut) closeMenu();
+
+  if (alertActive_ && (int32_t)(millis() - nextAlertMs_) >= 0) {
+    Sound::powerRestored();                 // silent if she switched this alert off in the settings
+    nextAlertMs_ = millis() + kAlertRepeatMs;
+  }
 
   bool tick = Rtc::secondChanged();
   if (tick || redraw_) {

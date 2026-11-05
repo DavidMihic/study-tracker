@@ -8,5 +8,6 @@ void turn();        // tick for one click of the dial
 void press();       // short beep: a button press / a choice was made
 void pressLong();   // long beep: something finished (block stopped, clock saved)
 void nudge();       // the three soft beeps at the target time
+void powerRestored();   // three longer beeps: power came back while a study block was running
 
 }  // namespace Sound

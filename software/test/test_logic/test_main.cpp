@@ -224,6 +224,65 @@ void test_progress_sounds_default_on_and_can_be_switched() {
   TEST_ASSERT_TRUE(Progress::soundNudge());
 }
 
+void test_reset_one_subject_keeps_the_rest() {
+  Progress::recordSession(kA1, 600);
+  Progress::recordSession(kA2, 900);
+  Progress::setFavorite(kA1, true);
+  Progress::setLastSubject(kA1);
+  Progress::setCurrentSemester(7);
+
+  Progress::resetSubject(kA1);
+  TEST_ASSERT_EQUAL(0, Progress::stats(kA1).totalSeconds);
+  TEST_ASSERT_EQUAL(0, Progress::stats(kA1).sessions);
+  TEST_ASSERT_FALSE(Progress::hasStats(kA1));
+  TEST_ASSERT_TRUE(Progress::stats(kA1).favorite);          // favourites are not touched
+  TEST_ASSERT_EQUAL(kA1, Progress::lastSubjectIndex());
+  TEST_ASSERT_EQUAL(7, Progress::currentSemester());
+  TEST_ASSERT_EQUAL(900, Progress::stats(kA2).totalSeconds);   // other subjects are not touched
+  TEST_ASSERT_TRUE(Progress::hasStats(kA2));
+}
+
+void test_reset_all_clears_time_but_not_favourites_or_settings() {
+  Progress::recordSession(kA1, 600);
+  Progress::recordSession(kE2, 300);
+  Progress::setFavorite(kW1, true);
+  Progress::setTargetMinutes(50);
+  Progress::resetAllStats();
+  for (size_t i = 0; i < Subjects::count(); i++) TEST_ASSERT_FALSE(Progress::hasStats(i));
+  TEST_ASSERT_TRUE(Progress::stats(kW1).favorite);
+  TEST_ASSERT_EQUAL(50, Progress::targetMinutes());
+}
+
+void test_reset_makes_an_elective_leave_the_main_list() {
+  size_t list[32];
+  Progress::recordSession(kE1, 300);
+  TEST_ASSERT_EQUAL(4, buildMain({1, Subjects::kWinter}, list));
+  Progress::resetSubject(kE1);
+  TEST_ASSERT_EQUAL(3, buildMain({1, Subjects::kWinter}, list));   // back in the folder only
+}
+
+void test_studied_list_covers_all_periods_in_the_usual_order() {
+  size_t list[32];
+  TEST_ASSERT_EQUAL(0, SubjectList::buildStudied(list, 32));
+  Progress::recordSession(kB1, 100);     // year 2
+  Progress::recordSession(kA1, 900);     // year 1
+  Progress::recordSession(kE3, 500);     // an elective of year 2
+  Progress::setFavorite(kB1, true);
+  size_t n = SubjectList::buildStudied(list, 32);
+  TEST_ASSERT_EQUAL(3, n);
+  TEST_ASSERT_EQUAL(kB1, list[0]);       // favourite first
+  TEST_ASSERT_EQUAL(kA1, list[1]);       // then most studied
+  TEST_ASSERT_EQUAL(kE3, list[2]);
+}
+
+void test_sound_restore_alert_defaults_on() {
+  TEST_ASSERT_TRUE(Progress::soundRestore());
+  Progress::setSoundRestore(false);
+  TEST_ASSERT_FALSE(Progress::soundRestore());
+  Progress::reset();
+  TEST_ASSERT_TRUE(Progress::soundRestore());
+}
+
 // ---------------------------------------------------------------- session
 void test_session_counts_up_and_nudges_once_but_keeps_running() {
   Session s;
@@ -416,6 +475,11 @@ int main(int, char**) {
   RUN_TEST(test_progress_records_time_and_sessions);
   RUN_TEST(test_progress_favorite_toggle);
   RUN_TEST(test_progress_last_subject_is_remembered_by_id);
+  RUN_TEST(test_reset_one_subject_keeps_the_rest);
+  RUN_TEST(test_reset_all_clears_time_but_not_favourites_or_settings);
+  RUN_TEST(test_reset_makes_an_elective_leave_the_main_list);
+  RUN_TEST(test_studied_list_covers_all_periods_in_the_usual_order);
+  RUN_TEST(test_sound_restore_alert_defaults_on);
   RUN_TEST(test_progress_semester_defaults_to_5_and_is_clamped);
   RUN_TEST(test_progress_target_minutes_is_clamped);
   RUN_TEST(test_progress_sounds_default_on_and_can_be_switched);

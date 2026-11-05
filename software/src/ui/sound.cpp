@@ -8,5 +8,6 @@ void turn()      { if (Progress::soundTurn())  Buzzer::play(Buzzer::Pattern::Cli
 void press()     { if (Progress::soundPress()) Buzzer::play(Buzzer::Pattern::Short); }
 void pressLong() { if (Progress::soundPress()) Buzzer::play(Buzzer::Pattern::Long); }
 void nudge()     { if (Progress::soundNudge()) Buzzer::play(Buzzer::Pattern::Nudge); }
+void powerRestored() { if (Progress::soundRestore()) Buzzer::play(Buzzer::Pattern::Alert); }
 
 }  // namespace Sound

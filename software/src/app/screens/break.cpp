@@ -1,6 +1,7 @@
 #include "app/screens/break.h"
 #include "app/app_state.h"
 #include "app/navigation.h"
+#include "app/persistence.h"
 #include "data/progress.h"
 #include "ui/sound.h"
 #include "drivers/display.h"
@@ -67,6 +68,7 @@ void BreakScreen::onEvent(const Input::Event& event) {
     size_t subject = session.subjectIndex();
     session.endBreak();
     session.startStudy(Rtc::now().unixtime(), subject, target);
+    Persistence::saveNow();
     Nav::go(ScreenId::Studying);
   } else {
     session.endBreak();

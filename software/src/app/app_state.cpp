@@ -12,6 +12,16 @@ LastBlock& lastBlock() {
   return instance;
 }
 
+PickerPurpose& pickerPurpose() {
+  static PickerPurpose instance = PickerPurpose::ChooseSubject;
+  return instance;
+}
+
+int& pendingResetSubject() {
+  static int instance = -1;
+  return instance;
+}
+
 ScreenId& settingsReturn() {
   static ScreenId instance = ScreenId::Home;
   return instance;

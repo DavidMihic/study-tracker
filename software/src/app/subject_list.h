@@ -21,6 +21,9 @@ size_t buildMain(View view, size_t* out, size_t maxEntries);
 // The elective folder of that period: ALL its electives (studied or not), same order rule.
 size_t buildElectives(View view, size_t* out, size_t maxEntries);
 
+// Every subject of ANY period that has recorded time or sessions (for resetting), same order rule.
+size_t buildStudied(size_t* out, size_t maxEntries);
+
 // Position of subjectIndex inside a built list, or -1 if it is not in it.
 int find(const size_t* list, size_t count, size_t subjectIndex);
 

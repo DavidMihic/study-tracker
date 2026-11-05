@@ -1,5 +1,6 @@
 #include "app/screens/sound_settings.h"
 #include "app/navigation.h"
+#include "app/persistence.h"
 #include "data/progress.h"
 #include "drivers/display.h"
 #include "ui/colors.h"
@@ -19,11 +20,12 @@ constexpr int16_t kValueWidth = 120;
 
 const char* labelOf(uint8_t row) {
   switch (row) {
-    case 1: return Strings::kSettingSoundTurn;
-    case 2: return Strings::kSettingSoundPress;
-    case 3: return Strings::kSettingSoundNudge;
+    case 0: return Strings::kSettingSoundTurn;
+    case 1: return Strings::kSettingSoundPress;
+    case 2: return Strings::kSettingSoundNudge;
+    case 3: return Strings::kSettingSoundRestore;
   }
-  return Strings::kBack;   // rows 0 and 4
+  return Strings::kBack;
 }
 
 }  // namespace
@@ -43,7 +45,7 @@ void SoundSettingsScreen::enter() {
   title_.set(Strings::kSoundTitle);
   hint_.set(Strings::kSoundHint);
 
-  selected_ = kTurn;   // row 0 is "Natrag"
+  selected_ = kTurn;
   dirty_ = true;
 }
 
@@ -51,7 +53,8 @@ bool SoundSettingsScreen::isOn(uint8_t row) const {
   switch (row) {
     case kTurn:  return Progress::soundTurn();
     case kPress: return Progress::soundPress();
-    default:     return Progress::soundNudge();
+    case kNudge: return Progress::soundNudge();
+    default:     return Progress::soundRestore();
   }
 }
 
@@ -71,12 +74,13 @@ void SoundSettingsScreen::onEvent(const Input::Event& event) {
         case kTurn:  Progress::setSoundTurn(!Progress::soundTurn());    Sound::turn();  break;
         case kPress: Progress::setSoundPress(!Progress::soundPress());  Sound::press(); break;
         case kNudge: Progress::setSoundNudge(!Progress::soundNudge());  Sound::nudge(); break;
-        case kBackTop:
+        case kRestore: Progress::setSoundRestore(!Progress::soundRestore());  Sound::powerRestored(); break;
         case kBack:
           Sound::press();
           Nav::go(ScreenId::Settings);
           return;
       }
+      Persistence::requestSave();
       dirty_ = true;
       break;
 
@@ -96,10 +100,10 @@ void SoundSettingsScreen::drawRows() {
     bool selected = (r == selected_);
     uint16_t background = selected ? Colors::kSelection : Colors::kBackground;
 
-    if (r == kBack || r == kBackTop) label_[r].setIcon(Icon::BackSmall, Colors::kDim, TextField::IconSide::Before);
+    if (r == kBack) label_[r].setIcon(Icon::BackSmall, Colors::kDim, TextField::IconSide::Before);
     label_[r].set(labelOf(r), Colors::kText, background);
 
-    if (r == kBack || r == kBackTop) {
+    if (r == kBack) {
       value_[r].set("", Colors::kMuted, background);
     } else {
       bool on = isOn(r);

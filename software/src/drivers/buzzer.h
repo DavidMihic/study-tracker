@@ -10,6 +10,7 @@ enum class Pattern : uint8_t {
   Short,   // 60 ms
   Long,    // 300 ms
   Nudge,   // three soft beeps: "target time reached"
+  Alert,   // three longer beeps: "something happened that needs a look" (power was cut)
 };
 
 // Call this FIRST in setup(): it drives the pin HIGH (silent) before anything else can glitch it.

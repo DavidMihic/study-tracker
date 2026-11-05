@@ -16,6 +16,14 @@ struct LastBlock {
 };
 LastBlock& lastBlock();
 
+// What the subject picker is opened for. It reads (and resets) this in enter().
+enum class PickerPurpose : uint8_t { ChooseSubject, ResetOne };
+PickerPurpose& pickerPurpose();
+
+// The reset-counters flow: the picker leaves the chosen subject (position in the list) here for the
+// reset screen, which then asks for confirmation. -1 = none.
+int& pendingResetSubject();
+
 // Where the settings screen returns to (Home or Studying, whichever opened it).
 ScreenId& settingsReturn();
 

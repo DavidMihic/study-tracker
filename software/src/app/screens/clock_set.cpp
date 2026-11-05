@@ -12,8 +12,8 @@ using DateEdit::Field;
 
 namespace {
 
-constexpr int16_t kRowsY = 32;
-constexpr int16_t kRowHeight = 23;
+constexpr int16_t kRowsY = 36;
+constexpr int16_t kRowHeight = 25;
 constexpr int16_t kLabelWidth = 190;
 constexpr int16_t kValueWidth = 130;
 
@@ -21,10 +21,10 @@ constexpr int16_t kValueWidth = 130;
 
 Field ClockSetScreen::fieldOfRow(uint8_t row) {
   switch (row) {
-    case 1: return Field::Day;
-    case 2: return Field::Month;
-    case 3: return Field::Year;
-    case 4: return Field::Hour;
+    case 0: return Field::Day;
+    case 1: return Field::Month;
+    case 2: return Field::Year;
+    case 3: return Field::Hour;
     default: return Field::Minute;
   }
 }
@@ -32,8 +32,8 @@ Field ClockSetScreen::fieldOfRow(uint8_t row) {
 void ClockSetScreen::enter() {
   Display::clear(Colors::kBackground);
 
-  title_.configure(0, 0, 320, 30, Font::Heading, Align::Left, Colors::kAccent, Colors::kBackground, 8);
-  hint_.configure(0, 218, 320, 22, Font::Small, Align::Center, Colors::kMuted);
+  title_.configure(0, 2, 320, 32, Font::Heading, Align::Left, Colors::kAccent, Colors::kBackground, 8);
+  hint_.configure(0, 214, 320, 22, Font::Small, Align::Center, Colors::kMuted);
   for (uint8_t r = 0; r < kRowCount; r++) {
     int16_t y = kRowsY + r * kRowHeight;
     label_[r].configure(0, y, kLabelWidth, kRowHeight - 1, Font::Body, Align::Left, Colors::kText,
@@ -53,7 +53,7 @@ void ClockSetScreen::enter() {
     fields_ = {2026, 1, 1, 12, 0};
   }
 
-  selected_ = kFirstFieldRow;   // row 0 is Odustani
+  selected_ = kFirstFieldRow;
   editing_ = false;
   dirty_ = true;
 }
@@ -83,7 +83,7 @@ void ClockSetScreen::onEvent(const Input::Event& event) {
         Nav::go(ScreenId::Settings);
         return;
       }
-      if (selected_ == kCancelRow || selected_ == kCancelTopRow) {
+      if (selected_ == kCancelRow) {
         Sound::press();
         Nav::go(ScreenId::Settings);
         return;
@@ -106,7 +106,7 @@ void ClockSetScreen::update() {
 }
 
 void ClockSetScreen::drawRows() {
-  const char* labels[kRowCount] = {Strings::kCancel, Strings::kFieldDay, Strings::kFieldMonth, Strings::kFieldYear,
+  const char* labels[kRowCount] = {Strings::kFieldDay, Strings::kFieldMonth, Strings::kFieldYear,
                                    Strings::kFieldHour, Strings::kFieldMinute, Strings::kSave,
                                    Strings::kCancel};
   for (uint8_t r = 0; r < kRowCount; r++) {
@@ -115,14 +115,14 @@ void ClockSetScreen::drawRows() {
 
     char value[16] = "";
     switch (r) {
-      case 1: snprintf(value, sizeof value, "%u.", (unsigned)fields_.day); break;
-      case 2: snprintf(value, sizeof value, "%u.", (unsigned)fields_.month); break;
-      case 3: snprintf(value, sizeof value, "%u.", (unsigned)fields_.year); break;
-      case 4: snprintf(value, sizeof value, "%02u", (unsigned)fields_.hour); break;
-      case 5: snprintf(value, sizeof value, "%02u", (unsigned)fields_.minute); break;
+      case 0: snprintf(value, sizeof value, "%u.", (unsigned)fields_.day); break;
+      case 1: snprintf(value, sizeof value, "%u.", (unsigned)fields_.month); break;
+      case 2: snprintf(value, sizeof value, "%u.", (unsigned)fields_.year); break;
+      case 3: snprintf(value, sizeof value, "%02u", (unsigned)fields_.hour); break;
+      case 4: snprintf(value, sizeof value, "%02u", (unsigned)fields_.minute); break;
     }
 
-    if (r == kCancelTopRow || r == kCancelRow) label_[r].setIcon(Icons::Icon::BackSmall, Colors::kDim, TextField::IconSide::Before);
+    if (r == kCancelRow) label_[r].setIcon(Icons::Icon::BackSmall, Colors::kDim, TextField::IconSide::Before);
     label_[r].set(labels[r], Colors::kText, background);
     // While a value is being changed it is green, so she can see the dial now changes it.
     uint16_t valueColor = (selected && editing_) ? Colors::kGood : (selected ? Colors::kText : Colors::kMuted);

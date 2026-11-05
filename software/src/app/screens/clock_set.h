@@ -14,13 +14,12 @@ class ClockSetScreen : public Screen {
   void update() override;
 
  private:
-  // Row 0 is Odustani (so leaving needs no long scroll), rows 1..5 are the date/time fields, then
-  // Spremi and Odustani again.
-  static constexpr uint8_t kCancelTopRow = 0;
-  static constexpr uint8_t kFirstFieldRow = 1;
-  static constexpr uint8_t kSaveRow = 6;
-  static constexpr uint8_t kCancelRow = 7;
-  static constexpr uint8_t kRowCount = 8;
+  // Rows 0..4 are the date/time fields, then Spremi and Odustani. All rows fit on the screen, so there
+  // is no Back row at the top (only menus that scroll have one).
+  static constexpr uint8_t kFirstFieldRow = 0;
+  static constexpr uint8_t kSaveRow = 5;
+  static constexpr uint8_t kCancelRow = 6;
+  static constexpr uint8_t kRowCount = 7;
 
   void drawRows();
   void save();

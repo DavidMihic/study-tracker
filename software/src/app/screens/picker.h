@@ -20,9 +20,10 @@ class PickerScreen : public Screen {
   void update() override;
 
  private:
+  // ResetList = every subject that has recorded time (used by Settings > Poništi brojače).
   // Main = subjects of the shown semester, Electives = folder, Years = list of years;
   // Half = full screen with the winter/summer cards, Confirm = full screen "switch semester?".
-  enum class Mode : uint8_t { Main, Electives, Years, Half, Confirm };
+  enum class Mode : uint8_t { Main, Electives, Years, Half, Confirm, ResetList };
 
   struct Item {
     enum class Kind : uint8_t { Subject, ElectivesFolder, OtherPeriod, YearChoice, Back };

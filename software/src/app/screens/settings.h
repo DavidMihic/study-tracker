@@ -14,7 +14,7 @@ class SettingsScreen : public Screen {
   void update() override;
 
  private:
-  enum Row : uint8_t { kBackTop, kBrightness, kSemester, kTarget, kSound, kClock, kBack, kRowCount };
+  enum Row : uint8_t { kBackTop, kSemester, kTarget, kBrightness, kSound, kClock, kReset, kBack, kRowCount };
   static constexpr uint8_t kVisibleRows = 5;
 
   void changeValue(int delta);
