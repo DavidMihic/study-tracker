@@ -1,28 +1,28 @@
+// Study tracker firmware entry point. No logic here: set up the drivers, then keep them running.
 #include <Arduino.h>
-
-constexpr uint8_t PIN_BUZZER = 25;  // silk "25"
-
-// 0 = never touch the buzzer pin: shows what the pin does by itself at power-up
-// 1 = drive the pin HIGH (silent) at the very start of setup()
-#define BOOT_TEST_MODE 1
+#include "app/app.h"
+#include "drivers/backlight.h"
+#include "drivers/buzzer.h"
+#include "drivers/display.h"
+#include "drivers/input.h"
+#include "drivers/rtc_clock.h"
 
 void setup() {
-#if BOOT_TEST_MODE == 1
-  pinMode(PIN_BUZZER, OUTPUT);
-  digitalWrite(PIN_BUZZER, HIGH);
-#endif
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH);      // LED on = the 3 s listening window
+  Buzzer::begin();       // first: drives the pin HIGH (silent) before anything else can glitch it
+
+  Serial.begin(115200);  // optional: the device runs fine without a PC attached
+  Backlight::begin();
+  Display::begin();
+  Input::begin();
+  bool rtcOk = Rtc::begin();
+  if (Serial) Serial.println(rtcOk ? F("RTC ok") : F("RTC not found"));
+
+  App::begin();
 }
 
 void loop() {
-  static bool done = false;
-  if (!done && millis() >= 3000) {
-    done = true;
-    pinMode(PIN_BUZZER, OUTPUT);
-    digitalWrite(PIN_BUZZER, LOW);      // proof beep: the wiring works
-    delay(150);
-    digitalWrite(PIN_BUZZER, HIGH);
-    digitalWrite(LED_BUILTIN, LOW);
-  }
+  Input::poll();
+  Rtc::poll();
+  Buzzer::update();
+  App::update();
 }
