@@ -1,6 +1,6 @@
 #include "ui/card_menu.h"
 #include "config/config.h"
-#include "drivers/buzzer.h"
+#include "ui/sound.h"
 #include "drivers/display.h"
 #include "ui/colors.h"
 
@@ -21,13 +21,14 @@ void CardMenu::layout() {
   left_ = (Config::kScreenWidth - total) / 2;
 }
 
-void CardMenu::open(const Card* cards, uint8_t count, uint32_t nowMs) {
+void CardMenu::open(const Card* cards, uint8_t count, uint32_t nowMs, uint8_t selected, uint32_t timeoutMs) {
   if (count > kMaxCards) count = kMaxCards;
   count_ = count;
   for (uint8_t i = 0; i < count_; i++) cards_[i] = cards[i];
-  selected_ = 0;
+  selected_ = (selected < count_) ? selected : 0;
   open_ = true;
   lastInputMs_ = nowMs;
+  timeoutMs_ = timeoutMs;
 
   Display::tft().fillRect(0, kBandTop, Config::kScreenWidth, Config::kScreenHeight - kBandTop,
                           Colors::kBackground);
@@ -73,7 +74,7 @@ CardMenu::Result CardMenu::onEvent(const Input::Event& event, uint32_t nowMs) {
       selected_ = (uint8_t)target;
       drawCard(old);          // only the two cards that changed
       drawCard(selected_);
-      Buzzer::play(Buzzer::Pattern::Click);
+      Sound::turn();
     }
     return Result::None;
   }
@@ -82,6 +83,6 @@ CardMenu::Result CardMenu::onEvent(const Input::Event& event, uint32_t nowMs) {
 }
 
 CardMenu::Result CardMenu::update(uint32_t nowMs) {
-  if (open_ && nowMs - lastInputMs_ >= Config::kMenuTimeoutMs) return Result::TimedOut;
+  if (open_ && timeoutMs_ > 0 && nowMs - lastInputMs_ >= timeoutMs_) return Result::TimedOut;
   return Result::None;
 }

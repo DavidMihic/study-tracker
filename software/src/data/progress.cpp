@@ -9,6 +9,7 @@ SubjectStats table[Subjects::kMaxSubjects] = {};
 uint16_t lastSubjectId = 0;                       // 0 = none chosen yet (ids are never 0)
 uint8_t semester = StudyRules::kDefaultSemester;
 uint16_t target = StudyRules::kDefaultTargetMinutes;
+bool turnSound = true, pressSound = true, nudgeSound = true;
 
 }  // namespace
 
@@ -19,6 +20,7 @@ void reset() {
   lastSubjectId = 0;
   semester = StudyRules::kDefaultSemester;
   target = StudyRules::kDefaultTargetMinutes;
+  turnSound = pressSound = nudgeSound = true;
 }
 
 const SubjectStats& stats(size_t subjectIndex) { return table[subjectIndex]; }
@@ -57,5 +59,12 @@ void setTargetMinutes(uint16_t minutes) {
   if (minutes > StudyRules::kMaxTargetMinutes) minutes = StudyRules::kMaxTargetMinutes;
   target = minutes;
 }
+
+bool soundTurn() { return turnSound; }
+bool soundPress() { return pressSound; }
+bool soundNudge() { return nudgeSound; }
+void setSoundTurn(bool on) { turnSound = on; }
+void setSoundPress(bool on) { pressSound = on; }
+void setSoundNudge(bool on) { nudgeSound = on; }
 
 }  // namespace Progress

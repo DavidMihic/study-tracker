@@ -5,6 +5,7 @@
 // The menu draws only its own band at the bottom (kBandTop and below); the screen keeps what is above it.
 #pragma once
 #include <Arduino.h>
+#include "config/config.h"
 #include "drivers/input.h"
 #include "ui/icons.h"
 
@@ -20,8 +21,10 @@ class CardMenu {
 
   enum class Result : uint8_t { None, Chosen, TimedOut };
 
-  // Clears the band and draws the cards. The first card is selected.
-  void open(const Card* cards, uint8_t count, uint32_t nowMs);
+  // Clears the band and draws the cards. `selected` is the card that starts highlighted.
+  // timeoutMs: 0 = this menu never closes by itself (for full-screen questions where a Back card exists).
+  void open(const Card* cards, uint8_t count, uint32_t nowMs, uint8_t selected = 0,
+            uint32_t timeoutMs = Config::kMenuTimeoutMs);
 
   // Clears the band again. The screen then redraws its own fields that were hidden under it.
   void close();
@@ -45,5 +48,6 @@ class CardMenu {
   uint8_t selected_ = 0;
   bool open_ = false;
   uint32_t lastInputMs_ = 0;
+  uint32_t timeoutMs_ = Config::kMenuTimeoutMs;
   int16_t cardWidth_ = 0, left_ = 0;
 };

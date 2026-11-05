@@ -3,7 +3,7 @@
 #include "app/navigation.h"
 #include "data/progress.h"
 #include "data/subjects.h"
-#include "drivers/buzzer.h"
+#include "ui/sound.h"
 #include "drivers/display.h"
 #include "drivers/rtc_clock.h"
 #include "ui/colors.h"
@@ -55,7 +55,7 @@ void StudyingScreen::stopStudying() {
   last.counted = Session::isCounted(length);
   if (last.counted) Progress::recordSession(session.subjectIndex(), length);
 
-  Buzzer::play(Buzzer::Pattern::Long);
+  Sound::pressLong();
   Nav::go(ScreenId::Break);
 }
 
@@ -64,7 +64,7 @@ void StudyingScreen::onEvent(const Input::Event& event) {
   // press can never change the session.
   if (!menu_.isOpen()) {
     if (event.type == Input::Event::Type::Click) {
-      Buzzer::play(Buzzer::Pattern::Short);
+      Sound::press();
       openMenu();
     }
     return;
@@ -72,7 +72,7 @@ void StudyingScreen::onEvent(const Input::Event& event) {
 
   if (menu_.onEvent(event, millis()) != CardMenu::Result::Chosen) return;
   Session& session = AppState::session();
-  Buzzer::play(Buzzer::Pattern::Short);
+  Sound::press();
 
   switch (menu_.chosen()) {
     case 0:   // pause / resume
@@ -100,7 +100,7 @@ void StudyingScreen::update() {
     uint32_t now = Rtc::now().unixtime();
 
     // The nudge: once, when the target is reached. The timer keeps running.
-    if (session.nudgeDue(now)) Buzzer::play(Buzzer::Pattern::Nudge);
+    if (session.nudgeDue(now)) Sound::nudge();
 
     Shown state = session.isPaused() ? Shown::Paused
                 : session.targetReached(now) ? Shown::Reached : Shown::Running;

@@ -5,7 +5,7 @@
 #include "app/subject_list.h"
 #include "data/progress.h"
 #include "data/subjects.h"
-#include "drivers/buzzer.h"
+#include "ui/sound.h"
 #include "drivers/display.h"
 #include "drivers/rtc_clock.h"
 #include "ui/colors.h"
@@ -84,7 +84,7 @@ void HomeScreen::closeMenu() {
 void HomeScreen::onEvent(const Input::Event& event) {
   if (!menu_.isOpen()) {
     if (event.type == Input::Event::Type::Click) {
-      Buzzer::play(Buzzer::Pattern::Short);
+      Sound::press();
       openMenu();
     }
     return;   // turns and long presses do nothing on the home screen
@@ -92,7 +92,7 @@ void HomeScreen::onEvent(const Input::Event& event) {
 
   if (menu_.onEvent(event, millis()) != CardMenu::Result::Chosen) return;
   uint8_t choice = menu_.chosen();
-  Buzzer::play(Buzzer::Pattern::Short);
+  Sound::press();
 
   switch (choice) {
     case 0: {   // start studying

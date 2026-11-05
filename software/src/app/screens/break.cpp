@@ -2,7 +2,7 @@
 #include "app/app_state.h"
 #include "app/navigation.h"
 #include "data/progress.h"
-#include "drivers/buzzer.h"
+#include "ui/sound.h"
 #include "drivers/display.h"
 #include "drivers/rtc_clock.h"
 #include "ui/colors.h"
@@ -49,7 +49,7 @@ void BreakScreen::onEvent(const Input::Event& event) {
 
   if (!menu_.isOpen()) {
     if (event.type == Input::Event::Type::Click) {
-      Buzzer::play(Buzzer::Pattern::Short);
+      Sound::press();
       const CardMenu::Card cards[] = {
         {Icon::Play, Strings::kCardNewBlock},
         {Icon::Home, Strings::kCardHome},
@@ -60,7 +60,7 @@ void BreakScreen::onEvent(const Input::Event& event) {
   }
 
   if (menu_.onEvent(event, millis()) != CardMenu::Result::Chosen) return;
-  Buzzer::play(Buzzer::Pattern::Short);
+  Sound::press();
 
   if (menu_.chosen() == 0) {   // another block on the same subject
     uint32_t target = (uint32_t)Progress::targetMinutes() * 60;

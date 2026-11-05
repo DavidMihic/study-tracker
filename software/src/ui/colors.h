@@ -13,6 +13,7 @@ constexpr uint16_t kGood       = 0x07E0;   // green
 constexpr uint16_t kWarning    = 0xFFE0;   // yellow
 constexpr uint16_t kBad        = 0xF800;   // red
 constexpr uint16_t kSelection  = 0x0014;   // dark blue behind the selected list row
+constexpr uint16_t kDim        = 0x6B4D;   // dimmed grey for small decorations (list-row icons)
 constexpr uint16_t kCard       = 0x2104;   // dark grey card in the pop-up menus
 
 }  // namespace Colors

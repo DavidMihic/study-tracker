@@ -6,6 +6,7 @@
 #include "app/screens/screen.h"
 #include "app/screens/clock_set.h"
 #include "app/screens/settings.h"
+#include "app/screens/sound_settings.h"
 #include "app/screens/studying.h"
 #include "drivers/input.h"
 
@@ -17,6 +18,7 @@ StudyingScreen studyingScreen;
 BreakScreen breakScreen;
 SettingsScreen settingsScreen;
 ClockSetScreen clockSetScreen;
+SoundSettingsScreen soundSettingsScreen;
 
 Screen* current = nullptr;
 
@@ -32,6 +34,7 @@ void go(ScreenId screen) {
     case ScreenId::Break:    current = &breakScreen; break;
     case ScreenId::Settings: current = &settingsScreen; break;
     case ScreenId::ClockSet: current = &clockSetScreen; break;
+    case ScreenId::SoundSettings: current = &soundSettingsScreen; break;
   }
   current->enter();
 }

@@ -14,11 +14,13 @@ class ClockSetScreen : public Screen {
   void update() override;
 
  private:
-  // Rows 0..4 are the date/time fields in the order of DateEdit::Field's use below, then the buttons.
-  static constexpr uint8_t kFieldRows = 5;
-  static constexpr uint8_t kSaveRow = 5;
-  static constexpr uint8_t kCancelRow = 6;
-  static constexpr uint8_t kRowCount = 7;
+  // Row 0 is Odustani (so leaving needs no long scroll), rows 1..5 are the date/time fields, then
+  // Spremi and Odustani again.
+  static constexpr uint8_t kCancelTopRow = 0;
+  static constexpr uint8_t kFirstFieldRow = 1;
+  static constexpr uint8_t kSaveRow = 6;
+  static constexpr uint8_t kCancelRow = 7;
+  static constexpr uint8_t kRowCount = 8;
 
   void drawRows();
   void save();

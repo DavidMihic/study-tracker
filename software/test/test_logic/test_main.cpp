@@ -105,6 +105,19 @@ void test_elective_joins_main_list_only_with_study_time() {
   TEST_ASSERT_EQUAL(kE2, list[0]);   // most studied, so it sorts to the top
 }
 
+void test_favorite_elective_moves_to_main_list() {
+  size_t list[32];
+  TEST_ASSERT_EQUAL(3, buildMain({1, Subjects::kWinter}, list));
+  Progress::setFavorite(kE1, true);                // never studied, but a favourite
+  size_t n = buildMain({1, Subjects::kWinter}, list);
+  TEST_ASSERT_EQUAL(4, n);
+  TEST_ASSERT_EQUAL(kE1, list[0]);                 // favourites first
+  Progress::setFavorite(kE1, false);
+  TEST_ASSERT_EQUAL(3, buildMain({1, Subjects::kWinter}, list));   // back in the folder only
+  size_t folder[32];
+  TEST_ASSERT_EQUAL(2, SubjectList::buildElectives({1, Subjects::kWinter}, folder, 32));
+}
+
 void test_elective_is_tied_to_its_period() {
   size_t list[32];
   Progress::recordSession(kE1, 300);   // E1 is offered in year 1, winter only
@@ -195,6 +208,20 @@ void test_progress_target_minutes_is_clamped() {
   TEST_ASSERT_EQUAL(120, Progress::targetMinutes());
   Progress::setTargetMinutes(45);
   TEST_ASSERT_EQUAL(45, Progress::targetMinutes());
+}
+
+void test_progress_sounds_default_on_and_can_be_switched() {
+  TEST_ASSERT_TRUE(Progress::soundTurn());
+  TEST_ASSERT_TRUE(Progress::soundPress());
+  TEST_ASSERT_TRUE(Progress::soundNudge());
+  Progress::setSoundTurn(false);
+  TEST_ASSERT_FALSE(Progress::soundTurn());
+  TEST_ASSERT_TRUE(Progress::soundPress());   // independent switches
+  Progress::setSoundNudge(false);
+  TEST_ASSERT_FALSE(Progress::soundNudge());
+  Progress::reset();
+  TEST_ASSERT_TRUE(Progress::soundTurn());
+  TEST_ASSERT_TRUE(Progress::soundNudge());
 }
 
 // ---------------------------------------------------------------- session
@@ -381,6 +408,7 @@ int main(int, char**) {
   RUN_TEST(test_equal_time_keeps_curriculum_order);
   RUN_TEST(test_favorites_go_first_then_by_time);
   RUN_TEST(test_elective_joins_main_list_only_with_study_time);
+  RUN_TEST(test_favorite_elective_moves_to_main_list);
   RUN_TEST(test_elective_is_tied_to_its_period);
   RUN_TEST(test_elective_folder_lists_all_electives_of_the_period);
   RUN_TEST(test_subject_spanning_two_semesters_shares_one_total);
@@ -390,6 +418,7 @@ int main(int, char**) {
   RUN_TEST(test_progress_last_subject_is_remembered_by_id);
   RUN_TEST(test_progress_semester_defaults_to_5_and_is_clamped);
   RUN_TEST(test_progress_target_minutes_is_clamped);
+  RUN_TEST(test_progress_sounds_default_on_and_can_be_switched);
   RUN_TEST(test_session_counts_up_and_nudges_once_but_keeps_running);
   RUN_TEST(test_session_pause_stops_counting_and_resume_continues);
   RUN_TEST(test_session_pause_twice_and_resume_when_running_do_nothing);

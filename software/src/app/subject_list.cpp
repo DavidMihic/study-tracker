@@ -39,7 +39,9 @@ size_t buildMain(View view, size_t* out, size_t maxEntries) {
   for (size_t i = 0; i < Subjects::count() && n < maxEntries; i++) {
     const Subjects::Subject& s = Subjects::at(i);
     if (!inPeriod(s, view)) continue;
-    if (s.elective && Progress::stats(i).totalSeconds == 0) continue;   // not studied yet: stays in the folder
+    // An elective is in the main list once it was studied or made a favourite; before that it is
+    // only in the folder.
+    if (s.elective && Progress::stats(i).totalSeconds == 0 && !Progress::stats(i).favorite) continue;
     out[n++] = i;
   }
   sortList(out, n);

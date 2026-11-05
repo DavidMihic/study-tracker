@@ -15,7 +15,7 @@ struct View {
 };
 
 // Main list: the subjects of that year and semester. An elective of that period is in it only once it
-// has study time. Writes subject positions (indexes into the Subjects list) into out and returns how many.
+// has study time or is a favourite. Writes subject positions (indexes into the Subjects list) into out and returns how many.
 size_t buildMain(View view, size_t* out, size_t maxEntries);
 
 // The elective folder of that period: ALL its electives (studied or not), same order rule.

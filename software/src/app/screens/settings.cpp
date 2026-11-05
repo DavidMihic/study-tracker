@@ -4,31 +4,44 @@
 #include "config/study_rules.h"
 #include "data/progress.h"
 #include "drivers/backlight.h"
-#include "drivers/buzzer.h"
 #include "drivers/display.h"
 #include "ui/colors.h"
+#include "ui/sound.h"
 #include "ui/strings.h"
 
 using Align = TextField::Align;
 using Display::Font;
+using Icons::Icon;
 
 namespace {
 
 constexpr int16_t kRowsY = 40;
 constexpr int16_t kRowHeight = 32;
-constexpr int16_t kLabelWidth = 180;
-constexpr int16_t kValueWidth = 140;
+constexpr int16_t kScreenWidth = 320;
+constexpr int16_t kLabelWidth = 200;
+constexpr int16_t kValueWidth = kScreenWidth - kLabelWidth;
+constexpr int16_t kTextWidth = kScreenWidth - ScrollArrows::kReservedWidth;   // title and hint leave the corners free
+
+constexpr int kBrightnessStepPercent = 5;
 
 bool clockCanBeSet() { return AppState::session().phase() == Session::Phase::Idle; }
 
 const char* labelOf(uint8_t row) {
   switch (row) {
-    case 0: return Strings::kSettingBrightness;
-    case 1: return Strings::kSettingSemester;
-    case 2: return Strings::kSettingTarget;
-    case 3: return Strings::kSettingClock;
+    case 1: return Strings::kSettingBrightness;
+    case 2: return Strings::kSettingSemester;
+    case 3: return Strings::kSettingTarget;
+    case 4: return Strings::kSettingSound;
+    case 5: return Strings::kSettingClock;
   }
-  return Strings::kBack;
+  return Strings::kBack;   // rows 0 and 6
+}
+
+// Brightness is shown in whole percent and moves in steps of 5 %. The backlight itself uses 0..255,
+// so the percent is rounded to the nearest multiple of 5 for display.
+int brightnessPercent() {
+  int exact = Backlight::get() * 100 / 255;
+  return ((exact + kBrightnessStepPercent / 2) / kBrightnessStepPercent) * kBrightnessStepPercent;
 }
 
 }  // namespace
@@ -36,9 +49,9 @@ const char* labelOf(uint8_t row) {
 void SettingsScreen::enter() {
   Display::clear(Colors::kBackground);
 
-  title_.configure(0, 4, 320, 32, Font::Heading, Align::Left, Colors::kAccent, Colors::kBackground, 8);
-  hint_.configure(0, 208, 320, 22, Font::Small, Align::Center, Colors::kMuted);
-  for (uint8_t r = 0; r < kRowCount; r++) {
+  title_.configure(0, 4, kTextWidth, 32, Font::Heading, Align::Left, Colors::kAccent, Colors::kBackground, 8);
+  hint_.configure(0, 208, kTextWidth, 22, Font::Small, Align::Center, Colors::kMuted);
+  for (uint8_t r = 0; r < kVisibleRows; r++) {
     int16_t y = kRowsY + r * kRowHeight;
     label_[r].configure(0, y, kLabelWidth, kRowHeight - 2, Font::Body, Align::Left, Colors::kText,
                         Colors::kBackground, 8);
@@ -46,8 +59,15 @@ void SettingsScreen::enter() {
                         Colors::kMuted, Colors::kBackground, 8);
   }
   title_.set(Strings::kSettingsTitle);
+  arrows_.reset();
 
-  selected_ = 0;
+  // Coming back from a submenu keeps the row she was on; a fresh visit starts on the first setting
+  // (row 0 is "Natrag", there so that leaving needs no long scroll).
+  if (!comingFromSubmenu_) {
+    selected_ = kBrightness;
+    top_ = 0;
+  }
+  comingFromSubmenu_ = false;
   editing_ = false;
   dirty_ = true;
 }
@@ -56,7 +76,7 @@ void SettingsScreen::valueText(uint8_t row, char* out, size_t size) const {
   out[0] = '\0';
   switch (row) {
     case kBrightness:
-      snprintf(out, size, Strings::kBrightnessFormat, (unsigned)(Backlight::get() * 100 / 255));
+      snprintf(out, size, Strings::kBrightnessFormat, (unsigned)brightnessPercent());
       break;
     case kSemester:
       snprintf(out, size, Strings::kSemesterFormat, (unsigned)Progress::currentSemester());
@@ -65,16 +85,20 @@ void SettingsScreen::valueText(uint8_t row, char* out, size_t size) const {
       snprintf(out, size, "%u %s", (unsigned)Progress::targetMinutes(), Strings::kMinutes);
       break;
     case kClock:   // the time must not jump under a running block, so it can only be set when idle
-      snprintf(out, size, "%s", clockCanBeSet() ? ">" : Strings::kClockLocked);
+      snprintf(out, size, "%s", clockCanBeSet() ? "" : Strings::kClockLocked);
       break;
   }
 }
 
 void SettingsScreen::changeValue(int delta) {
   switch (selected_) {
-    case kBrightness:
-      Backlight::adjust(delta);
+    case kBrightness: {
+      int percent = brightnessPercent() + delta * kBrightnessStepPercent;
+      if (percent < kBrightnessStepPercent) percent = kBrightnessStepPercent;   // never fully dark
+      if (percent > 100) percent = 100;
+      Backlight::set(percent * 255 / 100);
       break;
+    }
     case kSemester:
       Progress::setCurrentSemester((uint8_t)(Progress::currentSemester() + delta));
       break;
@@ -92,31 +116,48 @@ void SettingsScreen::changeValue(int delta) {
   }
 }
 
+void SettingsScreen::keepSelectionVisible() {
+  if (selected_ < top_) top_ = selected_;
+  if (selected_ >= top_ + kVisibleRows) top_ = selected_ - kVisibleRows + 1;
+}
+
 void SettingsScreen::onEvent(const Input::Event& event) {
   switch (event.type) {
     case Input::Event::Type::Turn:
       if (editing_) {
         changeValue(event.delta);
-        Buzzer::play(Buzzer::Pattern::Click);
       } else {
         int target = (int)selected_ + event.delta;
         if (target < 0 || target >= (int)kRowCount) break;
         selected_ = (uint8_t)target;
-        Buzzer::play(Buzzer::Pattern::Click);
+        keepSelectionVisible();
       }
+      Sound::turn();
       dirty_ = true;
       break;
 
     case Input::Event::Type::Click:
-      Buzzer::play(Buzzer::Pattern::Short);
-      if (selected_ == kBack) {
+      if (selected_ == kBack || selected_ == kBackTop) {
+        Sound::press();
         Nav::go(AppState::settingsReturn());
         return;
       }
+      if (selected_ == kSound) {
+        Sound::press();
+        comingFromSubmenu_ = true;
+        Nav::go(ScreenId::SoundSettings);
+        return;
+      }
       if (selected_ == kClock) {
-        if (clockCanBeSet()) Nav::go(ScreenId::ClockSet);
+        if (clockCanBeSet()) {
+          Sound::press();
+          comingFromSubmenu_ = true;
+          Nav::go(ScreenId::ClockSet);
+          return;
+        }
         break;
       }
+      Sound::press();
       editing_ = !editing_;
       dirty_ = true;
       break;
@@ -134,17 +175,29 @@ void SettingsScreen::update() {
 }
 
 void SettingsScreen::drawRows() {
-  for (uint8_t r = 0; r < kRowCount; r++) {
-    bool selected = (r == selected_);
+  for (uint8_t r = 0; r < kVisibleRows; r++) {
+    uint8_t row = top_ + r;
+    if (row >= kRowCount) {
+      label_[r].clearIcon();
+      label_[r].set("", Colors::kText, Colors::kBackground);
+      value_[r].set("", Colors::kMuted, Colors::kBackground);
+      continue;
+    }
+    bool selected = (row == selected_);
     uint16_t background = selected ? Colors::kSelection : Colors::kBackground;
     char value[24];
-    valueText(r, value, sizeof value);
+    valueText(row, value, sizeof value);
 
-    char label[32];
-    snprintf(label, sizeof label, "%s%s", r == kBack ? "< " : "", labelOf(r));
-    label_[r].set(label, Colors::kText, background);
+    // Rows that open another screen start with a dimmed icon: a return arrow, or a left triangle for Back.
+    bool submenu = (row == kSound) || (row == kClock && clockCanBeSet());
+    if (submenu) label_[r].setIcon(Icon::Return, Colors::kDim, TextField::IconSide::Before);
+    else if (row == kBack || row == kBackTop) label_[r].setIcon(Icon::BackSmall, Colors::kDim, TextField::IconSide::Before);
+    else label_[r].clearIcon();
+    label_[r].set(labelOf(row), Colors::kText, background);
+
     // While a value is being changed it is highlighted, so she can see the dial now changes it.
     uint16_t valueColor = (selected && editing_) ? Colors::kGood : (selected ? Colors::kText : Colors::kMuted);
     value_[r].set(value, valueColor, background);
   }
+  arrows_.update(top_ > 0, top_ + kVisibleRows < kRowCount);
 }

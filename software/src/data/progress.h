@@ -42,4 +42,13 @@ void setCurrentSemester(uint8_t semester);
 uint16_t targetMinutes();
 void setTargetMinutes(uint16_t minutes);
 
+// Which sounds are on (all on by default). The nudge at the target time also has its colour change, so
+// she can switch its sound off and still see it.
+bool soundTurn();                 // tick for every click of the dial
+bool soundPress();                // beeps for button presses and confirmations
+bool soundNudge();                // the three beeps at the target time
+void setSoundTurn(bool on);
+void setSoundPress(bool on);
+void setSoundNudge(bool on);
+
 }  // namespace Progress

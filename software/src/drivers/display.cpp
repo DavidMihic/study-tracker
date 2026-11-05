@@ -58,6 +58,10 @@ int16_t fontDescent(Font font) {
 
 void drawText(Font font, int16_t x, int16_t baselineY, const char* utf8, uint16_t color) {
   fonts.setFont(fontData(font));
+  // setFont() switches the library back to "opaque" text (a black box behind every letter) whenever the
+  // font changes, so transparent mode must be chosen again after it, or text on a coloured row gets
+  // black rectangles.
+  fonts.setFontMode(1);
   fonts.setForegroundColor(color);
   fonts.drawUTF8(x, baselineY, utf8);
 }
