@@ -7,7 +7,9 @@
 #include "data/progress.h"
 #include "data/subjects.h"
 #include "ui/sound.h"
+#include "config/config.h"
 #include "drivers/display.h"
+#include "drivers/input.h"
 #include "drivers/rtc_clock.h"
 #include "ui/colors.h"
 #include "ui/format.h"
@@ -134,6 +136,12 @@ void HomeScreen::onEvent(const Input::Event& event) {
 void HomeScreen::update() {
   if (menu_.isOpen() && menu_.update(millis()) == CardMenu::Result::TimedOut) closeMenu();
   subject_.marquee(millis());   // a long subject name slides
+
+  // Nothing touched for a while (and no menu open): start the screensaver.
+  if (!menu_.isOpen() && millis() - Input::lastActivityMs() >= Config::kIdleToScreensaverMs) {
+    Nav::go(ScreenId::Screensaver);
+    return;
+  }
 
   // Always call secondChanged() so it is consumed every loop.
   if (Rtc::secondChanged() || redrawTime_) {

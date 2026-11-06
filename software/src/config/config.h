@@ -29,5 +29,6 @@ constexpr uint32_t kRtcPollMs        = 100;         // read the DS3231 this ofte
 
 // Screensaver (build step 5). Study rules live in config/study_rules.h.
 constexpr uint32_t kIdleToScreensaverMs = 120000UL;
+constexpr uint8_t  kScreensaverBrightness = 24;   // the backlight never goes above this while it runs
 
 }  // namespace Config

@@ -10,6 +10,7 @@
 #include "app/subject_list.h"
 #include "data/progress.h"
 #include "data/subjects.h"
+#include "ui/ecg.h"
 #include "ui/format.h"
 
 using SubjectList::View;
@@ -430,6 +431,24 @@ void test_date_edit_year_stops_at_limits() {
 }
 
 // ---------------------------------------------------------------- formatting
+void test_ecg_trace_is_bounded_and_joins_up() {
+  // Beats join without a step: the end of one beat is on the baseline, like the start of the next.
+  TEST_ASSERT_EQUAL(0, Ecg::offset(0));
+  TEST_ASSERT_EQUAL(0, Ecg::offset(Ecg::kBeatWidth - 1));
+  int lowest = 0, highest = 0;
+  for (int p = 0; p < Ecg::kBeatWidth; p++) {
+    int y = Ecg::offset(p);
+    if (y < lowest) lowest = y;
+    if (y > highest) highest = y;
+    if (p > 0) {
+      int step = y - Ecg::offset(p - 1);
+      TEST_ASSERT_TRUE(step >= -20 && step <= 20);   // no jumps: the line stays connected
+    }
+  }
+  TEST_ASSERT_EQUAL(-Ecg::kMaxUp, lowest);             // the spike reaches exactly its stated height
+  TEST_ASSERT_EQUAL(Ecg::kMaxDown, highest);
+}
+
 void test_format_elapsed() {
   char buf[16];
   Format::elapsed(buf, sizeof buf, 0);     TEST_ASSERT_EQUAL_STRING("00:00", buf);
@@ -496,6 +515,7 @@ int main(int, char**) {
   RUN_TEST(test_date_edit_wraps_day_month_hour_minute);
   RUN_TEST(test_date_edit_keeps_day_valid_when_month_gets_shorter);
   RUN_TEST(test_date_edit_year_stops_at_limits);
+  RUN_TEST(test_ecg_trace_is_bounded_and_joins_up);
   RUN_TEST(test_format_elapsed);
   RUN_TEST(test_format_duration);
   RUN_TEST(test_format_date_and_clock_and_period);

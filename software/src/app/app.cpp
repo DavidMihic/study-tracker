@@ -8,6 +8,7 @@
 #include "app/screens/screen.h"
 #include "app/screens/clock_set.h"
 #include "app/screens/reset.h"
+#include "app/screens/screensaver.h"
 #include "app/screens/settings.h"
 #include "app/screens/sound_settings.h"
 #include "app/screens/stats_screen.h"
@@ -25,6 +26,7 @@ ClockSetScreen clockSetScreen;
 SoundSettingsScreen soundSettingsScreen;
 ResetScreen resetScreen;
 StatsScreen statsScreen;
+ScreensaverScreen screensaverScreen;
 
 Screen* current = nullptr;
 
@@ -43,6 +45,7 @@ void go(ScreenId screen) {
     case ScreenId::SoundSettings: current = &soundSettingsScreen; break;
     case ScreenId::Reset: current = &resetScreen; break;
     case ScreenId::Stats: current = &statsScreen; break;
+    case ScreenId::Screensaver: current = &screensaverScreen; break;
   }
   current->enter();
 }
