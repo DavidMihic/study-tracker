@@ -117,6 +117,28 @@ void test_format_round_trip() {
   TEST_ASSERT_EQUAL(1, out.subjects[1].sessions);
 }
 
+// The save data for the largest possible list (kMaxSubjects records) must fit the buffer and read back whole.
+void test_format_full_table_round_trip() {
+  SaveFormat::Data in = sampleData();
+  in.subjectCount = Subjects::kMaxSubjects;
+  for (uint16_t i = 0; i < Subjects::kMaxSubjects; i++) in.subjects[i] = {(uint16_t)(i + 1), 100000u + i, (uint16_t)(i + 3), (i % 2) == 0};
+  uint8_t buf[SaveFormat::kMaxBytes];
+  size_t n = SaveFormat::serialize(in, buf, sizeof buf);
+  TEST_ASSERT_TRUE(n > 0);
+  TEST_ASSERT_TRUE(n <= SaveFormat::kMaxBytes);
+  TEST_ASSERT_EQUAL(SaveFormat::kMaxBytes, n);
+
+  SaveFormat::Data out = {};
+  TEST_ASSERT_TRUE(SaveFormat::parse(buf, n, out));
+  TEST_ASSERT_EQUAL(Subjects::kMaxSubjects, out.subjectCount);
+  for (uint16_t i = 0; i < Subjects::kMaxSubjects; i++) {
+    TEST_ASSERT_EQUAL(in.subjects[i].id, out.subjects[i].id);
+    TEST_ASSERT_EQUAL(in.subjects[i].totalSeconds, out.subjects[i].totalSeconds);
+    TEST_ASSERT_EQUAL(in.subjects[i].sessions, out.subjects[i].sessions);
+    TEST_ASSERT_EQUAL(in.subjects[i].favorite, out.subjects[i].favorite);
+  }
+}
+
 void test_format_rejects_damaged_data() {
   SaveFormat::Data in = sampleData(), out = {};
   uint8_t buf[SaveFormat::kMaxBytes];
@@ -463,7 +485,9 @@ class MemoryLogBackend : public SessionLog::Backend {
  public:
   std::vector<uint8_t> bytes;
   size_t size() override { return bytes.size(); }
+  size_t failReadsAfter = (size_t)-1;   // reads that start at or after this offset fail (a flash error)
   size_t read(size_t offset, uint8_t* buffer, size_t length) override {
+    if (offset >= failReadsAfter) return 0;
     if (offset >= bytes.size()) return 0;
     size_t n = bytes.size() - offset < length ? bytes.size() - offset : length;
     memcpy(buffer, bytes.data() + offset, n);
@@ -523,6 +547,19 @@ void test_log_skips_a_damaged_record_and_repairs_a_torn_tail() {
   records = allRecords();
   TEST_ASSERT_EQUAL(2, records.size());                       // 1000 (the damaged middle one is gone) and 4000
   TEST_ASSERT_EQUAL(4000, records[1].startUnix);
+}
+
+// A read error half-way through the log must never be written back as a shorter log.
+void test_log_is_not_shortened_when_a_read_fails() {
+  logFlash.bytes.clear();
+  SessionLog::begin(&logFlash);
+  for (uint16_t i = 0; i < 40; i++) SessionLog::append({1000000u + i, 600, (uint16_t)(1 + i % 3)});
+  const std::vector<uint8_t> before = logFlash.bytes;
+  logFlash.failReadsAfter = 12 * 32;   // the first 32-record chunk reads fine, the next one fails
+  TEST_ASSERT_FALSE(SessionLog::removeSubject(1));
+  logFlash.failReadsAfter = (size_t)-1;
+  TEST_ASSERT_TRUE(before == logFlash.bytes);
+  TEST_ASSERT_EQUAL(40, SessionLog::count());
 }
 
 void test_log_removes_one_subject_or_everything() {
@@ -688,10 +725,12 @@ int main(int, char**) {
   RUN_TEST(test_version_1_data_is_still_read);
   RUN_TEST(test_log_appends_and_reads_back_in_order);
   RUN_TEST(test_log_skips_a_damaged_record_and_repairs_a_torn_tail);
+  RUN_TEST(test_log_is_not_shortened_when_a_read_fails);
   RUN_TEST(test_log_removes_one_subject_or_everything);
   RUN_TEST(test_study_day_starts_at_5_am);
   RUN_TEST(test_crc32_known_value);
   RUN_TEST(test_format_round_trip);
+  RUN_TEST(test_format_full_table_round_trip);
   RUN_TEST(test_format_rejects_damaged_data);
   RUN_TEST(test_format_too_small_buffer_is_refused);
   RUN_TEST(test_everything_survives_a_reboot);

@@ -34,22 +34,25 @@ bool decode(const uint8_t* in, Record& r) {
   return true;
 }
 
-// Reads all valid records into memory (the log is small: ~44 KB a year).
-std::vector<Record> readAll() {
+// Reads all valid records into memory (the log is small: ~44 KB a year). *complete is false if a read
+// failed half-way: what was read is then NOT the whole log, so nobody may write it back over the file.
+std::vector<Record> readAll(bool* complete = nullptr) {
   std::vector<Record> records;
+  if (complete) *complete = false;
   if (!backend) return records;
   const size_t total = backend->size() / kRecordBytes;
   records.reserve(total);
   uint8_t chunk[kRecordBytes * 32];
   for (size_t done = 0; done < total;) {
     size_t n = total - done < 32 ? total - done : 32;
-    if (backend->read(done * kRecordBytes, chunk, n * kRecordBytes) != n * kRecordBytes) break;
+    if (backend->read(done * kRecordBytes, chunk, n * kRecordBytes) != n * kRecordBytes) return records;
     for (size_t i = 0; i < n; i++) {
       Record r;
       if (decode(chunk + i * kRecordBytes, r)) records.push_back(r);
     }
     done += n;
   }
+  if (complete) *complete = true;
   return records;
 }
 
@@ -63,7 +66,11 @@ bool writeAll(const std::vector<Record>& records) {
 
 void begin(Backend* b) {
   backend = b;
-  if (backend && backend->size() % kRecordBytes != 0) writeAll(readAll());   // drop the torn tail
+  if (backend && backend->size() % kRecordBytes != 0) {   // drop the torn tail
+    bool complete = false;
+    std::vector<Record> records = readAll(&complete);
+    if (complete) writeAll(records);
+  }
 }
 
 bool append(const Record& record) {
@@ -81,8 +88,11 @@ void forEach(void (*fn)(const Record&, void*), void* context) {
 
 bool removeSubject(uint16_t subjectId) {
   if (!backend) return false;
+  bool complete = false;
+  std::vector<Record> all = readAll(&complete);
+  if (!complete) return false;   // a failed read must not turn into a shortened log
   std::vector<Record> kept;
-  for (const Record& r : readAll()) if (r.subjectId != subjectId) kept.push_back(r);
+  for (const Record& r : all) if (r.subjectId != subjectId) kept.push_back(r);
   return writeAll(kept);
 }
 

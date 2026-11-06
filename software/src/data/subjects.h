@@ -23,7 +23,11 @@ struct Subject {
 
 // Upper bound used for the fixed-size tables in progress.cpp. A compile-time check in subjects.cpp
 // fails the build if the list outgrows it.
-constexpr size_t kMaxSubjects = 160;
+constexpr size_t kMaxSubjects = 256;
+
+// Longest name in bytes (UTF-8, without the terminating zero) that the screens can hold: the text field
+// and the picker rows have 96-byte buffers. A compile-time check in subjects.cpp enforces it.
+constexpr size_t kMaxNameBytes = 95;
 
 size_t count();
 const Subject& at(size_t index);

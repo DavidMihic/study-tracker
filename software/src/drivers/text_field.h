@@ -3,6 +3,7 @@
 // the UI follows the rule "redraw only what changed".
 #pragma once
 #include <Arduino.h>
+#include "data/subjects.h"
 #include "drivers/display.h"
 #include "ui/colors.h"
 #include "ui/icons.h"
@@ -50,6 +51,7 @@ class TextField {
 
  private:
   static constexpr size_t kMaxBytes = 96;
+  static_assert(kMaxBytes > Subjects::kMaxNameBytes, "a subject name must fit in a text field");
   static constexpr int16_t kIconSlot = 22;   // space reserved for an icon
 
   void draw();

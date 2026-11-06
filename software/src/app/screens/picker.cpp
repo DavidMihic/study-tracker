@@ -427,7 +427,7 @@ void PickerScreen::drawRows() {
       rowRight_[r].set("", Colors::kMuted, Colors::kBackground);
       continue;
     }
-    char left[64], right[24];
+    char left[Subjects::kMaxNameBytes + 1], right[24];
     RowLook look;
     describe(items_[position], left, sizeof left, right, sizeof right, look);
 
