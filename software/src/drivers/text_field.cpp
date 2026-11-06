@@ -115,7 +115,61 @@ int16_t TextField::scrollSteps() const {
   return steps;
 }
 
+// The big clock font is proportional, so a changing digit would shift the whole string sideways.
+// Instead every character gets a cell of fixed width (all digits as wide as the widest digit), and a
+// second tick redraws only the one or two cells whose character changed.
+void TextField::drawCells() {
+  static int16_t digitWidth = 0, colonWidth = 0;
+  if (digitWidth == 0) {
+    for (char d = '0'; d <= '9'; d++) {
+      char s[2] = {d, '\0'};
+      int16_t w = Display::textWidth(font_, s);
+      if (w > digitWidth) digitWidth = w;
+    }
+    colonWidth = Display::textWidth(font_, ":") + 4;
+  }
+  auto cellWidth = [](char c) { return c == ':' ? colonWidth : digitWidth; };
+
+  const size_t length = strlen(text_);
+  int16_t total = 0;
+  for (size_t i = 0; i < length; i++) total += cellWidth(text_[i]);
+  int16_t left = x_ + padding_;
+  if (align_ == Align::Center) left = x_ + (width_ - total) / 2;
+  if (align_ == Align::Right)  left = x_ + width_ - padding_ - total;
+
+  // Everything is redrawn when the layout or the colours changed (or the screen was cleared).
+  const bool full = !drawn_ || stale_ || foreground_ != cellForeground_ || background_ != cellBackground_ ||
+                    left != cellLeft_ || length != strlen(cellText_);
+  if (full) Display::tft().fillRect(x_, y_, width_, height_, background_);
+
+  const int16_t ascent = Display::fontAscent(font_);
+  const int16_t descent = Display::fontDescent(font_);
+  const int16_t baseline = y_ + (height_ - (ascent - descent)) / 2 + ascent;
+
+  int16_t cellX = left;
+  for (size_t i = 0; i < length; i++) {
+    const int16_t w = cellWidth(text_[i]);
+    if (full || text_[i] != cellText_[i]) {
+      if (!full) Display::tft().fillRect(cellX, y_, w, height_, background_);
+      if (text_[i] != ' ') {
+        char glyph[2] = {text_[i], '\0'};
+        Display::drawText(font_, cellX + (w - Display::textWidth(font_, glyph)) / 2, baseline, glyph, foreground_);
+      }
+    }
+    cellX += w;
+  }
+
+  strncpy(cellText_, text_, kMaxBytes - 1);
+  cellText_[kMaxBytes - 1] = '\0';
+  cellForeground_ = foreground_;
+  cellBackground_ = background_;
+  cellLeft_ = left;
+  drawn_ = true;
+  stale_ = false;
+}
+
 void TextField::draw() {
+  if (font_ == Display::Font::Clock) { drawCells(); return; }
   Display::tft().fillRect(x_, y_, width_, height_, background_);
 
   char shown[kMaxBytes];

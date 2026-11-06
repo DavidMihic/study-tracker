@@ -21,6 +21,7 @@ enum class Icon : uint8_t {
   Return,     // "opens a list": arrow going down and then right (small)
   Back,       // triangle pointing left, card size
   BackSmall,  // triangle pointing left, list-row size
+  Chart,      // three bars: statistics
 };
 
 // color = the icon; background = what is behind it (the gear's hole and the book's pages use it).

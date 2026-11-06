@@ -10,6 +10,7 @@ void Session::startStudy(uint32_t nowUnix, size_t subjectIndex, uint32_t targetS
   targetSeconds_ = targetSeconds;
   nudgeFired_ = false;
   checkpoint_ = nowUnix;
+  startedUnix_ = nowUnix;
 }
 
 void Session::pause(uint32_t nowUnix) {
@@ -72,6 +73,7 @@ Session::Snapshot Session::snapshot() const {
   s.runStartUnix = runStart_;
   s.running = running_;
   s.checkpointUnix = checkpoint_;
+  s.startedUnix = startedUnix_;
   return s;
 }
 
@@ -91,5 +93,6 @@ void Session::restorePaused(const Snapshot& s, uint32_t targetSeconds, uint32_t 
   running_ = false;
   targetSeconds_ = targetSeconds;
   checkpoint_ = s.checkpointUnix;
+  startedUnix_ = s.startedUnix;
   nudgeFired_ = (accumulated_ >= targetSeconds_);   // a nudge that was already due is not repeated
 }

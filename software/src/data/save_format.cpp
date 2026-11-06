@@ -69,6 +69,7 @@ size_t serialize(const Data& data, uint8_t* out, size_t capacity) {
   w.u32(data.active.runStartUnix);
   w.u8(data.active.running ? 1 : 0);
   w.u32(data.active.checkpointUnix);
+  w.u32(data.active.startedUnix);
 
   w.u16(data.subjectCount);
   for (uint16_t i = 0; i < data.subjectCount; i++) {
@@ -92,7 +93,8 @@ size_t serialize(const Data& data, uint8_t* out, size_t capacity) {
 bool parse(const uint8_t* bytes, size_t length, Data& data) {
   if (length < kHeaderBytes + kCrcBytes) return false;
   for (size_t i = 0; i < 4; i++) if (bytes[i] != kMarker[i]) return false;
-  if (bytes[4] != kVersion) return false;
+  const uint8_t version = bytes[4];
+  if (version != 1 && version != kVersion) return false;
 
   size_t payload = (size_t)bytes[6] | ((size_t)bytes[7] << 8);
   size_t total = kHeaderBytes + payload + kCrcBytes;
@@ -118,6 +120,7 @@ bool parse(const uint8_t* bytes, size_t length, Data& data) {
   data.active.runStartUnix = r.u32();
   data.active.running = r.u8() != 0;
   data.active.checkpointUnix = r.u32();
+  data.active.startedUnix = (version >= 2) ? r.u32() : data.active.runStartUnix;
 
   data.subjectCount = r.u16();
   if (data.subjectCount > Subjects::kMaxSubjects) return false;

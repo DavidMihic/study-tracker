@@ -15,6 +15,7 @@ constexpr const char* kMenuHint          = "Klik: izbornik";
 constexpr const char* kCardStart         = "Počni";
 constexpr const char* kCardSubject       = "Predmet";
 constexpr const char* kCardSettings      = "Postavke";
+constexpr const char* kCardStats         = "Statistika";
 constexpr const char* kCardPause         = "Pauza";
 constexpr const char* kCardResume        = "Nastavi";
 constexpr const char* kCardStop          = "Završi";
@@ -78,6 +79,22 @@ constexpr const char* kResetQuestionOne  = "Poništiti brojače za:";
 constexpr const char* kResetQuestionAll  = "Poništiti SVE predmete?";
 constexpr const char* kResetDetails      = "Vrijeme: %s   Sesije: %u";
 constexpr const char* kCardReset         = "Poništi";
+
+// ---- Statistics ----
+constexpr const char* kStatsTitle        = "Statistika";
+constexpr const char* kStatsToday        = "Danas";
+constexpr const char* kStatsThisWeek     = "Ovaj tjedan";
+constexpr const char* kStatsLastWeek     = "Prošli tjedan";
+constexpr const char* kStatsNothing      = "Nema zapisanog učenja";
+constexpr const char* kStatsTotalFormat  = "%s, %s";            // duration, number of blocks
+constexpr const char* kStatsMostStudied  = "Najviše: %s";
+constexpr const char* kStatsHint         = "Okreni: dani i tjedni   Klik: natrag";
+constexpr const char* kBlockOne          = "blok";              // 1, 21, 31 ...
+constexpr const char* kBlockFew          = "bloka";             // 2 to 4, 22 to 24 ...
+constexpr const char* kBlockMany         = "blokova";           // 0, 5 to 20, 25 ...
+constexpr const char* kWeekdayInitials[7] = {   // Monday first (the order of the week chart)
+  "P", "U", "S", "Č", "P", "S", "N",
+};
 
 // ---- Set date and time ----
 constexpr const char* kClockSetTitle     = "Postavi sat";

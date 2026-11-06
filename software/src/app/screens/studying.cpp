@@ -3,6 +3,7 @@
 #include "app/navigation.h"
 #include "app/persistence.h"
 #include "data/progress.h"
+#include "data/session_log.h"
 #include "data/subjects.h"
 #include "ui/sound.h"
 #include "drivers/display.h"
@@ -65,7 +66,10 @@ void StudyingScreen::stopStudying() {
   AppState::LastBlock& last = AppState::lastBlock();
   last.seconds = length;
   last.counted = Session::isCounted(length);
-  if (last.counted) Progress::recordSession(session.subjectIndex(), length);
+  if (last.counted) {
+    Progress::recordSession(session.subjectIndex(), length);
+    SessionLog::append({session.startedUnix(), length, Subjects::at(session.subjectIndex()).id});
+  }
   Persistence::saveNow();   // the new total is saved and the running block is cleared
 
   Sound::pressLong();

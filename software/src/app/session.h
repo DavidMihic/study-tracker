@@ -46,8 +46,12 @@ class Session {
     uint32_t runStartUnix;
     bool running;
     uint32_t checkpointUnix;
+    uint32_t startedUnix;        // when the block was first started (pauses and power cuts do not change it)
   };
   Snapshot snapshot() const;
+
+  // When the current study block was first started (for the session log).
+  uint32_t startedUnix() const { return startedUnix_; }
 
   // Remembers "the device is running right now" (called before saving; only matters while running).
   void checkpoint(uint32_t nowUnix);
@@ -70,4 +74,5 @@ class Session {
   uint32_t targetSeconds_ = 0;
   bool nudgeFired_ = false;
   uint32_t checkpoint_ = 0;    // last time the block was known to be running
+  uint32_t startedUnix_ = 0;   // when the block was first started
 };

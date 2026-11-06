@@ -53,6 +53,7 @@ class TextField {
   static constexpr int16_t kIconSlot = 22;   // space reserved for an icon
 
   void draw();
+  void drawCells();   // Clock font: every character in a fixed-width cell, only changed cells redrawn
   int16_t room() const;
 
   int16_t x_ = 0, y_ = 0, width_ = 0, height_ = 0, padding_ = 0;
@@ -67,4 +68,9 @@ class TextField {
   uint16_t iconColor_ = Colors::kText;
   IconSide iconSide_ = IconSide::None;
   int16_t scroll_ = -1;
+
+  // What drawCells() has on the screen now (to find the cells that changed).
+  char cellText_[kMaxBytes] = "";
+  uint16_t cellForeground_ = 0, cellBackground_ = 0;
+  int16_t cellLeft_ = 0;
 };

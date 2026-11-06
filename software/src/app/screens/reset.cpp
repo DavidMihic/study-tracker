@@ -3,6 +3,7 @@
 #include "app/navigation.h"
 #include "app/persistence.h"
 #include "data/progress.h"
+#include "data/session_log.h"
 #include "data/subjects.h"
 #include "drivers/display.h"
 #include "ui/colors.h"
@@ -93,8 +94,14 @@ void ResetScreen::showConfirm(int subjectIndex) {
 }
 
 void ResetScreen::applyReset() {
-  if (target_ >= 0) Progress::resetSubject((size_t)target_);
-  else Progress::resetAllStats();
+  // The session log is cleared with the counters, so the statistics never disagree with the totals.
+  if (target_ >= 0) {
+    Progress::resetSubject((size_t)target_);
+    SessionLog::removeSubject(Subjects::at((size_t)target_).id);
+  } else {
+    Progress::resetAllStats();
+    SessionLog::clear();
+  }
   Persistence::saveNow();     // a deliberate change: written right away
   Sound::pressLong();
 }

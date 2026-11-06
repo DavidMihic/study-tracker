@@ -21,6 +21,11 @@ constexpr uint32_t kMinCountedSessionSeconds = 60;
 // passed counts; later than that, only the time up to the last checkpoint counts.
 constexpr uint32_t kResumeTrustSeconds = 15 * 60;
 
+// The study day for the day/week statistics starts at this hour, not at midnight: a block that begins
+// on Wednesday evening and runs past midnight still belongs to Wednesday. A block counts for the study
+// day in which it STARTED. (Only matters if she studies straight through this hour.)
+constexpr uint8_t kStudyDayStartHour = 5;
+
 // The gentle nudge comes at this length; the session keeps running. Adjustable in the settings.
 constexpr uint16_t kDefaultTargetMinutes = 25;
 constexpr uint16_t kMinTargetMinutes     = 5;

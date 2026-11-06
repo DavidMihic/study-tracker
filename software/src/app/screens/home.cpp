@@ -72,9 +72,10 @@ void HomeScreen::openMenu() {
   const CardMenu::Card cards[] = {
     {Icon::Play, Strings::kCardStart},
     {Icon::Book, Strings::kCardSubject},
+    {Icon::Chart, Strings::kCardStats},
     {Icon::Gear, Strings::kCardSettings},
   };
-  menu_.open(cards, 3, millis());
+  menu_.open(cards, 4, millis());
 }
 
 void HomeScreen::closeMenu() {
@@ -117,6 +118,9 @@ void HomeScreen::onEvent(const Input::Event& event) {
       Nav::go(ScreenId::Picker);
       return;
     case 2:
+      Nav::go(ScreenId::Stats);
+      return;
+    case 3:
       AppState::settingsReturn() = ScreenId::Home;
       Nav::go(ScreenId::Settings);
       return;

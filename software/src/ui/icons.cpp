@@ -115,6 +115,12 @@ void draw(Icon icon, int16_t cx, int16_t cy, uint16_t color, uint16_t background
       t.fillTriangle(cx - 5, cy, cx + 4, cy - 6, cx + 4, cy + 6, color);
       break;
 
+    case Icon::Chart:
+      t.fillRect(cx - 13, cy + 1, 7, 12, color);
+      t.fillRect(cx - 3, cy - 6, 7, 19, color);
+      t.fillRect(cx + 7, cy - 13, 7, 26, color);
+      break;
+
     case Icon::Return:
       t.fillRect(cx - 7, cy - 7, 2, 11, color);                          // down ...
       t.fillRect(cx - 7, cy + 2, 11, 2, color);                          // ... then right

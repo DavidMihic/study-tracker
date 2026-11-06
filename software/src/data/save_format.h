@@ -14,7 +14,9 @@
 
 namespace SaveFormat {
 
-constexpr uint8_t kVersion = 1;
+// Version 2 added ActiveRecord::startedUnix. Version 1 data is still read (startedUnix then falls back to
+// runStartUnix); everything is written as version 2.
+constexpr uint8_t kVersion = 2;
 
 struct SubjectRecord {
   uint16_t id;
@@ -31,6 +33,7 @@ struct ActiveRecord {
   uint32_t runStartUnix;         // start of the running stretch
   bool running;                  // false = it was paused
   uint32_t checkpointUnix;       // last moment the device is known to have been running
+  uint32_t startedUnix;          // when the block was first started (for the session log)
 };
 
 struct Data {
@@ -46,7 +49,7 @@ struct Data {
 };
 
 // Largest possible serialized size (all subjects present).
-constexpr size_t kMaxBytes = 8 + 1 + 2 + 1 + 1 + 2 + (1 + 2 + 4 + 4 + 1 + 4) + 2 +
+constexpr size_t kMaxBytes = 8 + 1 + 2 + 1 + 1 + 2 + (1 + 2 + 4 + 4 + 1 + 4 + 4) + 2 +
                              Subjects::kMaxSubjects * (2 + 4 + 2 + 1) + 4;
 
 // Writes data into out (capacity bytes). Returns the length, or 0 if it does not fit.

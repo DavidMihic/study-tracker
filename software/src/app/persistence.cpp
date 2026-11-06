@@ -55,6 +55,7 @@ void collect() {
     data.active.runStartUnix = snap.runStartUnix;
     data.active.running = snap.running;
     data.active.checkpointUnix = snap.checkpointUnix;
+    data.active.startedUnix = snap.startedUnix;
   }
 }
 
@@ -105,6 +106,7 @@ bool load() {
       pending.runStartUnix = data.active.runStartUnix;
       pending.running = data.active.running;
       pending.checkpointUnix = data.active.checkpointUnix;
+      pending.startedUnix = data.active.startedUnix;
       hasPending = true;
     }
   }
