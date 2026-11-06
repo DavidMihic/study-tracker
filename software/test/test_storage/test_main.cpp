@@ -338,11 +338,12 @@ void test_paused_block_keeps_its_time() {
   AppState::session().pause(gUnix + 400);
   gUnix += 400;
   Persistence::saveNow();
-  gUnix += 86400;                                               // the device stays off for a day
+  gUnix += 2 * 3600;                                            // the device stays off for two hours
 
   TEST_ASSERT_TRUE(reboot());
   TEST_ASSERT_TRUE(AppState::session().isPaused());
   TEST_ASSERT_EQUAL(400, AppState::session().elapsedSeconds(gUnix));
+  TEST_ASSERT_FALSE(Persistence::blockAutoFinished());
 }
 
 void test_restored_block_does_not_repeat_the_nudge_that_already_came() {
@@ -576,6 +577,72 @@ void test_log_removes_one_subject_or_everything() {
   TEST_ASSERT_EQUAL(0, SessionLog::count());
 }
 
+// ---------------------------------------------------------------- old blocks finish themselves
+void test_old_block_is_recorded_and_not_restored() {
+  logFlash.bytes.clear();
+  SessionLog::begin(&logFlash);
+  gUnix = 5000;
+  AppState::session().startStudy(gUnix, kA1, 1500);
+  Persistence::saveNow();
+  gUnix = 5000 + 1800;
+  AppState::session().checkpoint(gUnix);
+  Persistence::saveNow();                                       // checkpoint after 30 minutes
+  gUnix += StudyRules::kAutoFinishSeconds + 1;                  // just over the limit
+
+  TEST_ASSERT_TRUE(reboot());
+  TEST_ASSERT_EQUAL(Session::Phase::Idle, AppState::session().phase());
+  TEST_ASSERT_FALSE(Persistence::restoredSession());
+  TEST_ASSERT_TRUE(Persistence::blockAutoFinished());
+  TEST_ASSERT_EQUAL(1800, Progress::stats(kA1).totalSeconds);   // only the time up to the checkpoint
+  TEST_ASSERT_EQUAL(1, Progress::stats(kA1).sessions);
+  auto records = allRecords();
+  TEST_ASSERT_EQUAL(1, records.size());
+  TEST_ASSERT_EQUAL(5000, records[0].startUnix);
+  TEST_ASSERT_EQUAL(1800, records[0].seconds);
+
+  // It is gone for good: another reboot finds nothing to restore, and the totals were saved.
+  TEST_ASSERT_TRUE(reboot());
+  TEST_ASSERT_EQUAL(Session::Phase::Idle, AppState::session().phase());
+  TEST_ASSERT_FALSE(Persistence::blockAutoFinished());
+  TEST_ASSERT_EQUAL(1800, Progress::stats(kA1).totalSeconds);
+
+  Persistence::acknowledgeAutoFinished();
+}
+
+void test_block_at_the_limit_is_still_restored_and_old_paused_block_is_finished() {
+  logFlash.bytes.clear();
+  SessionLog::begin(&logFlash);
+  gUnix = 100;
+  AppState::session().startStudy(gUnix, kB1, 1500);
+  AppState::session().pause(gUnix + 400);
+  gUnix += 400;
+  Persistence::saveNow();
+  gUnix = 100 + StudyRules::kAutoFinishSeconds;                 // exactly at the limit, counted from the last
+                                                                // checkpoint (100: a pause does not move it)
+  TEST_ASSERT_TRUE(reboot());
+  TEST_ASSERT_EQUAL(Session::Phase::Studying, AppState::session().phase());
+
+  gUnix += 1;                                                   // one second more: finished
+  TEST_ASSERT_TRUE(reboot());
+  TEST_ASSERT_EQUAL(Session::Phase::Idle, AppState::session().phase());
+  TEST_ASSERT_EQUAL(400, Progress::stats(kB1).totalSeconds);
+  Persistence::acknowledgeAutoFinished();
+}
+
+void test_old_block_shorter_than_a_minute_is_dropped_silently() {
+  logFlash.bytes.clear();
+  SessionLog::begin(&logFlash);
+  gUnix = 100;
+  AppState::session().startStudy(gUnix, kA1, 1500);
+  Persistence::saveNow();
+  gUnix += StudyRules::kAutoFinishSeconds + 5;
+  TEST_ASSERT_TRUE(reboot());
+  TEST_ASSERT_EQUAL(Session::Phase::Idle, AppState::session().phase());
+  TEST_ASSERT_FALSE(Persistence::blockAutoFinished());          // nothing counted, no notice
+  TEST_ASSERT_EQUAL(0, Progress::stats(kA1).sessions);
+  TEST_ASSERT_EQUAL(0, SessionLog::count());
+}
+
 void test_study_day_starts_at_5_am() {
   // 2026-11-04 is a Wednesday. Midnight of that day, as a unix time with the RTC's "local = UTC" convention:
   const uint32_t wedMidnight = 1793750400u;
@@ -727,6 +794,9 @@ int main(int, char**) {
   RUN_TEST(test_log_skips_a_damaged_record_and_repairs_a_torn_tail);
   RUN_TEST(test_log_is_not_shortened_when_a_read_fails);
   RUN_TEST(test_log_removes_one_subject_or_everything);
+  RUN_TEST(test_old_block_is_recorded_and_not_restored);
+  RUN_TEST(test_block_at_the_limit_is_still_restored_and_old_paused_block_is_finished);
+  RUN_TEST(test_old_block_shorter_than_a_minute_is_dropped_silently);
   RUN_TEST(test_study_day_starts_at_5_am);
   RUN_TEST(test_crc32_known_value);
   RUN_TEST(test_format_round_trip);

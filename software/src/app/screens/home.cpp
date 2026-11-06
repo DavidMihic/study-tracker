@@ -43,6 +43,8 @@ void HomeScreen::drawBottom() {
     notice_.set(Strings::kRtcMissing);
   } else if (Rtc::wasReset()) {
     notice_.set(Strings::kClockWasReset);
+  } else if (Persistence::blockAutoFinished()) {
+    notice_.set(Strings::kAutoSavedNotice);   // stays until she first touches the dial or button
   }
 }
 
@@ -85,6 +87,7 @@ void HomeScreen::closeMenu() {
 }
 
 void HomeScreen::onEvent(const Input::Event& event) {
+  Persistence::acknowledgeAutoFinished();   // she has seen the notice (drawBottom() no longer shows it)
   if (!menu_.isOpen()) {
     if (event.type == Input::Event::Type::Click) {
       Sound::press();

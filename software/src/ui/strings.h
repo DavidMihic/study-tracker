@@ -40,6 +40,7 @@ constexpr const char* kSwitchQuestion    = "Prebaciti na %u. semestar?";
 constexpr const char* kTargetFormat      = "Cilj: %u min";
 constexpr const char* kTargetReached     = "Cilj postignut, možeš nastaviti";
 constexpr const char* kRestoredNotice  = "Vraćeno nakon prekida napajanja";
+constexpr const char* kAutoSavedNotice = "Stari blok je spremljen";
 constexpr const char* kPaused            = "Pauzirano";
 
 // ---- Break ----

@@ -53,4 +53,10 @@ bool restoredSession();
 bool restoredWasRunning();    // ... and it was running (not paused by her): the power cut stopped it
 void acknowledgeRestored();   // the screen has shown the "restored" notice
 
+// A restored block older than StudyRules::kAutoFinishSeconds is not shown: restoreSession() records it
+// (counted time up to its last checkpoint) and the device starts on Home. This is true if that happened
+// and the block was long enough to count; the Home screen shows a notice until it is acknowledged.
+bool blockAutoFinished();
+void acknowledgeAutoFinished();
+
 }  // namespace Persistence

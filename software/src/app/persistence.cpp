@@ -1,7 +1,9 @@
 #include "app/persistence.h"
 #include "app/app_state.h"
 #include "data/progress.h"
+#include "config/study_rules.h"
 #include "data/save_format.h"
+#include "data/session_log.h"
 #include "data/subjects.h"
 
 namespace Persistence {
@@ -19,6 +21,7 @@ uint32_t lastRequestMs = 0;
 uint32_t lastCheckpointUnix = 0;
 bool restored = false;
 bool restoredRunning = false;
+bool autoFinished = false;                   // restoreSession() recorded an old block by itself
 bool hasPending = false;                     // load() found a running block; restoreSession() applies it
 Session::Snapshot pending = {};
 
@@ -67,6 +70,7 @@ void begin(Backend* b, Clock c) {
   saveRequested = false;
   restored = false;
   restoredRunning = false;
+  autoFinished = false;
   hasPending = false;
 }
 
@@ -117,10 +121,28 @@ bool load() {
 void restoreSession() {
   if (!hasPending) return;
   hasPending = false;
-  AppState::session().restorePaused(pending, (uint32_t)Progress::targetMinutes() * 60, nowUnix());
+  Session& session = AppState::session();
+  const uint32_t now = nowUnix();
+  session.restorePaused(pending, (uint32_t)Progress::targetMinutes() * 60, now);
+  lastCheckpointUnix = now;
+
+  // Waiting for hours (clock must work and not have gone backwards): finish the block for her.
+  const bool old = now != 0 && now >= pending.checkpointUnix &&
+                   now - pending.checkpointUnix > StudyRules::kAutoFinishSeconds;
+  if (old) {
+    uint32_t length = session.endStudy(now);
+    session.endBreak();                      // back to idle: the device starts on the home screen
+    if (Session::isCounted(length)) {
+      Progress::recordSession(pending.subjectIndex, length);
+      SessionLog::append({pending.startedUnix, length, Subjects::at(pending.subjectIndex).id});
+      autoFinished = true;
+    }
+    saveNow();                               // the total is saved and the running block is cleared
+    return;
+  }
+
   restored = true;
   restoredRunning = pending.running;
-  lastCheckpointUnix = nowUnix();
 }
 
 void saveNow() {
@@ -160,5 +182,9 @@ bool restoredSession() { return restored; }
 bool restoredWasRunning() { return restored && restoredRunning; }
 
 void acknowledgeRestored() { restored = false; restoredRunning = false; }
+
+bool blockAutoFinished() { return autoFinished; }
+
+void acknowledgeAutoFinished() { autoFinished = false; }
 
 }  // namespace Persistence
