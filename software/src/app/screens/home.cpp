@@ -30,6 +30,7 @@ void HomeScreen::enter() {
   menu_.close();
   drawBottom();
   drawSubject();
+  subject_.restartMarquee(millis());
   redrawTime_ = true;
 }
 
@@ -129,6 +130,7 @@ void HomeScreen::onEvent(const Input::Event& event) {
 
 void HomeScreen::update() {
   if (menu_.isOpen() && menu_.update(millis()) == CardMenu::Result::TimedOut) closeMenu();
+  subject_.marquee(millis());   // a long subject name slides
 
   // Always call secondChanged() so it is consumed every loop.
   if (Rtc::secondChanged() || redrawTime_) {

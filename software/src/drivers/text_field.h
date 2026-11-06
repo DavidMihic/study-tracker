@@ -39,6 +39,12 @@ class TextField {
   bool overflows() const;          // the whole current text is wider than the room
   int16_t scrollSteps() const;     // how many characters must be skipped for the end to be visible
 
+  // Self-running scroll for a single long text (Home, Studying): call every loop. A text that fits is
+  // left alone; a longer one waits, slides one character at a time, holds at the end and repeats.
+  // Call restartMarquee() when the text changes so the cycle starts from the beginning.
+  void marquee(uint32_t nowMs);
+  void restartMarquee(uint32_t nowMs) { marqueeStartMs_ = nowMs; }
+
   // Moves/resizes the field horizontally (a row whose right column is narrower gives the space to the
   // left one). Needs a set() afterwards, like setIcon().
   void setBounds(int16_t x, int16_t width) {
@@ -70,6 +76,7 @@ class TextField {
   uint16_t iconColor_ = Colors::kText;
   IconSide iconSide_ = IconSide::None;
   int16_t scroll_ = -1;
+  uint32_t marqueeStartMs_ = 0;
 
   // What drawCells() has on the screen now (to find the cells that changed).
   char cellText_[kMaxBytes] = "";

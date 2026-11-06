@@ -115,6 +115,22 @@ int16_t TextField::scrollSteps() const {
   return steps;
 }
 
+void TextField::marquee(uint32_t nowMs) {
+  if (!drawn_ || !overflows()) return;
+  constexpr uint32_t kWaitMs = 900, kStepMs = 140, kHoldMs = 1200;   // same rhythm as the picker rows
+  const int16_t steps = scrollSteps();
+  const uint32_t cycle = kWaitMs + (uint32_t)steps * kStepMs + kHoldMs;
+  const uint32_t t = (nowMs - marqueeStartMs_) % cycle;
+  int16_t skip = 0;
+  if (t >= kWaitMs) {
+    const uint32_t done = (t - kWaitMs) / kStepMs;
+    skip = (done > (uint32_t)steps) ? steps : (int16_t)done;
+  }
+  if (skip == scroll_) return;
+  setScroll(skip);
+  draw();
+}
+
 // The big clock font is proportional, so a changing digit would shift the whole string sideways.
 // Instead every character gets a cell of fixed width (all digits as wide as the widest digit), and a
 // second tick redraws only the one or two cells whose character changed.
@@ -182,8 +198,10 @@ void TextField::draw() {
   int16_t textWidth = Display::textWidth(font_, shown);
   int16_t total = textWidth + slot;
   int16_t left = x_ + padding_;
-  if (align_ == Align::Center) left = x_ + (width_ - total) / 2;
-  if (align_ == Align::Right)  left = x_ + width_ - padding_ - total;
+  // A sliding text is left-aligned, otherwise it would jump sideways as its width changes.
+  const Align align = (scroll_ >= 0 && overflows()) ? Align::Left : align_;
+  if (align == Align::Center) left = x_ + (width_ - total) / 2;
+  if (align == Align::Right)  left = x_ + width_ - padding_ - total;
   int16_t textX = left + (iconSide_ == IconSide::Before ? slot : 0);
 
   // Centre the text vertically: the glyphs span from ascent above to descent below the baseline.

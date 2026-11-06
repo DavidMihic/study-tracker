@@ -30,6 +30,7 @@ void StudyingScreen::enter() {
 
   menu_.close();
   subject_.set(Subjects::at(AppState::session().subjectIndex()).name);
+  subject_.restartMarquee(millis());
   if (Persistence::restoredSession()) {     // opened right after a power cut
     alertActive_ = Persistence::restoredWasRunning();
     nextAlertMs_ = millis();
@@ -114,6 +115,7 @@ void StudyingScreen::onEvent(const Input::Event& event) {
 void StudyingScreen::update() {
   Session& session = AppState::session();
   if (menu_.isOpen() && menu_.update(millis()) == CardMenu::Result::TimedOut) closeMenu();
+  subject_.marquee(millis());   // a long subject name slides
 
   if (alertActive_ && (int32_t)(millis() - nextAlertMs_) >= 0) {
     Sound::powerRestored();                 // silent if she switched this alert off in the settings
