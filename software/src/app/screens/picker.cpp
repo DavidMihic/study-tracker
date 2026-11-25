@@ -149,6 +149,8 @@ void PickerScreen::rebuild() {
     }
     case Mode::Electives: {
       size_t n = SubjectList::buildElectives(view_, list, Subjects::kMaxSubjects);
+      // A Back row at the top too, but only if the list is long enough that both never show at once.
+      if (n + 2 > kVisibleRows) add(Item::Kind::Back);
       for (size_t i = 0; i < n; i++) add(Item::Kind::Subject, list[i]);
       add(Item::Kind::Back);
       break;
@@ -256,12 +258,14 @@ void PickerScreen::onEvent(const Input::Event& event) {
           }
           return;
 
-        case Item::Kind::ElectivesFolder:
+        case Item::Kind::ElectivesFolder: {
           mode_ = Mode::Electives;
           rebuild();
-          selected_ = 0;
+          int first = findKind(Item::Kind::Subject);   // start below the top Back row
+          selected_ = (first >= 0) ? (size_t)first : 0;
           top_ = 0;
           break;
+        }
 
         case Item::Kind::OtherPeriod: {
           mode_ = Mode::Years;

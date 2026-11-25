@@ -11,7 +11,7 @@ constexpr uint32_t kLongPressMs      = 800;
 
 // Display
 constexpr uint32_t kSpiHz            = 32000000UL;  // 62.5 MHz is no faster (library is CPU-bound)
-constexpr uint8_t  kRotation         = 1;           // landscape, 320 x 240
+constexpr uint8_t  kRotation         = 3;           // landscape, 320 x 240; 3 = turned 180 deg, as the module is mounted
 constexpr int16_t  kScreenWidth      = 320;
 constexpr int16_t  kScreenHeight     = 240;
 
