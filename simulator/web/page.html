@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study Tracker – demo</title>
+<style>
+  :root { --bg: #e9ebee; --panel: #ffffff; --ink: #1d2430; --muted: #5d6776; --line: #d3d8df; --red: #c8322b; --blue: #9fd4f0; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 "Segoe UI", system-ui, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 24px 16px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; justify-content: center; }
+  h1 { width: 100%; margin: 0; font-size: 22px; }
+  h2 { margin: 0 0 8px; font-size: 15px; }
+  .device { background: #fbfbfb;border: 1px solid var(--line); border-radius: 22px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.14); display: flex; flex-direction: column; align-items: center; gap: 20px; max-width: 100%; }
+  .bezel { background: #000; padding: 10px; border-radius: 8px; max-width: 100%; }
+  canvas#screen { display: block; width: 640px; max-width: 100%; height: auto; aspect-ratio: 4 / 3; image-rendering: pixelated; }
+  .controls { display: flex; align-items: center; gap: 18px; padding-bottom: 4px; }
+  #knob { width: 108px; height: 108px; border-radius: 50%; border: 6px solid #7bbfe2; background: var(--blue); cursor: pointer; position: relative; box-shadow: 0 6px 12px rgba(0,0,0,.28); touch-action: none; }
+  #knob::after { content: ""; position: absolute; left: 50%; top: 8px; width: 6px; height: 24px; margin-left: -3px; border-radius: 3px; background: #1f6f9a; }
+  #knob { transform: rotate(var(--angle, 0deg)); }
+  #knob.down { filter: brightness(.88); box-shadow: 0 2px 4px rgba(0,0,0,.28); }
+  button { font: inherit; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+  button:hover { border-color: #8d98a8; }
+  .turn { width: 48px; height: 48px; font-size: 20px; border-radius: 50%; padding: 0; }
+  aside { flex: 1 1 280px; max-width: 360px; display: flex; flex-direction: column; gap: 14px; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  ul { margin: 0; padding-left: 18px; }
+  kbd { background: #eef0f3; border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; font-size: 12px; }
+  .note { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+  #message { color: var(--red); min-height: 1.5em; margin: 6px 0 0; font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Study Tracker – demo uređaja</h1>
+
+  <div class="device" id="device">
+    <div class="bezel"><canvas id="screen" width="320" height="240" aria-label="Zaslon uređaja"></canvas></div>
+    <div class="controls">
+      <button class="turn" id="left" title="Okreni ulijevo">↺</button>
+      <div id="knob" role="button" aria-label="Kotačić: pritisak"></div>
+      <button class="turn" id="right" title="Okreni udesno">↻</button>
+    </div>
+  </div>
+
+  <aside>
+    <section>
+      <h2>Upravljanje</h2>
+      <ul>
+        <li><b>Okretanje:</b> kotačić miša iznad uređaja, strelice ili gumbi ↺ ↻</li>
+        <li><b>Klik:</b> klik na plavi kotačić, <kbd>razmaknica</kbd> ili <kbd>Enter</kbd></li>
+        <li><b>Dugi pritisak:</b> drži otprilike jednu sekundu (u popisu predmeta: omiljeni)</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Prečaci za demo</h2>
+      <div class="row">
+        <button data-skip="60">+1 min</button>
+        <button data-skip="300">+5 min</button>
+        <button data-skip="1500">+25 min</button>
+      </div>
+      <p class="note">Preskakanje vremena: pokreni učenje pa dodaj minute da vidiš što se događa kad se dosegne cilj.</p>
+      <div class="row" style="margin-top:10px">
+        <button id="saver">Čuvar zaslona</button>
+        <button id="power">Nestanak struje</button>
+        <button id="reset">Vrati početne podatke</button>
+      </div>
+      <p id="message" role="status"></p>
+    </section>
+    <section>
+      <h2>Spremi sliku zaslona</h2>
+      <div class="row">
+        <button id="png1">PNG 320 × 240</button>
+        <button id="png4">PNG 1280 × 960</button>
+      </div>
+      <p class="note">Slike su uvijek na punoj svjetlini, pa su boje točne za pipetu.</p>
+      <label class="note" style="display:block"><input type="checkbox" id="mute"> Isključi zvuk</label>
+    </section>
+    <section>
+      <p class="note" style="margin:0">Na pravom uređaju zaslon ima samo 2 inča, boje izgledaju nešto drukčije, a promjena cijelog zaslona vidi se kao kratko prebrisavanje.</p>
+    </section>
+  </aside>
+</main>
+
+<script>
+/*CORE*/
+</script>
+<script>
+(async () => {
+  const $ = (id) => document.getElementById(id);
+  const say = (text) => { $("message").textContent = text; };
+
+  // Browser storage (the device's flash memory and clock). Works in memory if the browser refuses it.
+  const PREFIX = "study-tracker-demo:";
+  const memory = {};
+  let persistent = true;
+  const store = {
+    get(key) { try { return localStorage.getItem(PREFIX + key); } catch { persistent = false; return memory[key] ?? null; } },
+    set(key, value) { memory[key] = value; try { localStorage.setItem(PREFIX + key, value); } catch { persistent = false; } },
+    clear() { for (const key of ["save", "log", "clock", "seeded"]) { delete memory[key]; try { localStorage.removeItem(PREFIX + key); } catch {} } },
+  };
+
+  // Sound: the device has an active buzzer, which only knows on and off.
+  let audio = null, gain = null;
+  function unlockAudio() {
+    if (!audio) {
+      audio = new (window.AudioContext || window.webkitAudioContext)();
+      const tone = audio.createOscillator();
+      tone.type = "square";
+      tone.frequency.value = 2300;
+      gain = audio.createGain();
+      gain.gain.value = 0;
+      tone.connect(gain).connect(audio.destination);
+      tone.start();
+    }
+    if (audio.state === "suspended") audio.resume();
+  }
+
+  const core = await createStudyTracker({
+    storageLoad: (name) => store.get(name),
+    storageSave: (name, hex) => store.set(name, hex),
+    onBuzzer: (on) => { if (gain) gain.gain.value = on && !$("mute").checked ? 0.04 : 0; },
+  });
+
+  // The device clock: local time, plus what skipping time or "Datum i vrijeme" changed.
+  const localUnix = () => Math.floor(Date.now() / 1000) - new Date().getTimezoneOffset() * 60;
+  const offset = Number(store.get("clock")) || 0;
+  core._sim_setup(performance.now(), localUnix() + offset, store.get("seeded") ? 0 : 1);
+  store.set("seeded", "1");
+  const saveClock = () => store.set("clock", String(Math.round(core._sim_clock() - localUnix())));
+
+  // Screen
+  const canvas = $("screen");
+  const context = canvas.getContext("2d");
+  const image = context.createImageData(320, 240);
+  function drawFrame() {
+    const start = core._sim_frame() >> 1;
+    const pixels = core.HEAPU16;
+    for (let i = 0; i < 320 * 240; i++) {
+      const c = pixels[start + i];
+      const r = c >> 11, g = (c >> 5) & 63, b = c & 31;
+      image.data[4 * i] = (r << 3) | (r >> 2);
+      image.data[4 * i + 1] = (g << 2) | (g >> 4);
+      image.data[4 * i + 2] = (b << 3) | (b >> 2);
+      image.data[4 * i + 3] = 255;
+    }
+    context.putImageData(image, 0, 0);
+  }
+
+  setInterval(() => core._sim_loop(performance.now()), 5);
+  let shownBacklight = -1;
+  (function paint() {
+    if (core._sim_take_dirty()) drawFrame();
+    const level = core._sim_backlight();
+    if (level !== shownBacklight) {
+      shownBacklight = level;
+      canvas.style.filter = `brightness(${0.25 + 0.75 * level / 255})`;
+    }
+    requestAnimationFrame(paint);
+  })();
+
+  // Dial
+  let angle = 0;
+  function turn(clicks) {
+    unlockAudio();
+    core._sim_turn(clicks);
+    angle += clicks * 18;                       // 20 clicks per revolution, like the real encoder
+    $("knob").style.setProperty("--angle", angle + "deg");
+  }
+  let pressedAt = null, releaseTimer = null;
+  function press() {
+    if (pressedAt !== null) return;
+    unlockAudio();
+    pressedAt = performance.now();
+    clearTimeout(releaseTimer);
+    core._sim_button(1);
+    $("knob").classList.add("down");
+  }
+  function release() {
+    if (pressedAt === null) return;
+    // Held at least 60 ms, so a very quick tap is not lost in the firmware's debouncing.
+    const wait = Math.max(0, 60 - (performance.now() - pressedAt));
+    pressedAt = null;
+    releaseTimer = setTimeout(() => { core._sim_button(0); $("knob").classList.remove("down"); }, wait);
+  }
+
+  $("left").addEventListener("click", () => turn(-1));
+  $("right").addEventListener("click", () => turn(1));
+  $("knob").addEventListener("pointerdown", (e) => { if (e.button !== 0) return; $("knob").setPointerCapture(e.pointerId); press(); });
+  for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) $("knob").addEventListener(type, release);
+
+  let wheel = 0;
+  $("device").addEventListener("wheel", (e) => {
+    e.preventDefault();
+    if (e.deltaY === 0) return;
+    if (Math.abs(e.deltaY) >= 50 || e.deltaMode !== 0) { wheel = 0; turn(Math.sign(e.deltaY)); return; }
+    wheel += e.deltaY;                          // touchpads send many small steps
+    if (Math.abs(wheel) >= 50) { turn(Math.sign(wheel)); wheel = 0; }
+  }, { passive: false });
+
+  const turnKeys = { ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1 };
+  const pressKeys = [" ", "Enter"];
+  addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.key in turnKeys) { e.preventDefault(); turn(turnKeys[e.key]); }
+    else if (pressKeys.includes(e.key)) { e.preventDefault(); if (!e.repeat) press(); }
+  });
+  addEventListener("keyup", (e) => { if (pressKeys.includes(e.key)) { e.preventDefault(); release(); } });
+  addEventListener("blur", release);
+
+  // Demo shortcuts
+  for (const button of document.querySelectorAll("[data-skip]")) {
+    button.addEventListener("click", () => { unlockAudio(); core._sim_skip(Number(button.dataset.skip)); saveClock(); say(""); });
+  }
+  $("saver").addEventListener("click", () => {
+    say(core._sim_screensaver() ? "Bilo koji okret ili klik budi uređaj." : "Čuvar zaslona ne pali se dok traje učenje ili pauza.");
+  });
+  $("power").addEventListener("click", () => {
+    if (!persistent) { say("Preglednik ne dopušta spremanje podataka pa ovo ovdje ne radi."); return; }
+    saveClock();
+    location.reload();
+  });
+  let resetting = false;
+  $("reset").addEventListener("click", () => {
+    if (!confirm("Obrisati sve promjene i vratiti početne demo podatke?")) return;
+    resetting = true;
+    store.clear();
+    location.reload();
+  });
+  addEventListener("pagehide", () => { if (!resetting) saveClock(); });
+  setInterval(saveClock, 2000);
+
+  // Screenshots, straight from the frame buffer (no backlight dimming).
+  function savePng(scale) {
+    drawFrame();
+    const out = document.createElement("canvas");
+    out.width = 320 * scale;
+    out.height = 240 * scale;
+    const target = out.getContext("2d");
+    target.imageSmoothingEnabled = false;
+    target.drawImage(canvas, 0, 0, out.width, out.height);
+    out.toBlob((blob) => {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `study-tracker-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}-${out.width}x${out.height}.png`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    });
+  }
+  $("png1").addEventListener("click", () => savePng(1));
+  $("png4").addEventListener("click", () => savePng(4));
+
+  // For automated checks.
+  window.studyTracker = core;
+})();
+</script>
+</body>
+</html>

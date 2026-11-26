@@ -1,0 +1,2 @@
+# Git Bash cannot run a script with Windows line endings.
+*.sh text eol=lf

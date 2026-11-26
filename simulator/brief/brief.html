@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<title>Study Tracker – dizajn brief</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font: 10.5pt/1.45 "Segoe UI", system-ui, sans-serif; color: #1d2430; }
+  h1 { font-size: 22pt; margin: 0 0 2mm; }
+  h2 { font-size: 14pt; margin: 7mm 0 2mm; border-bottom: 1.5px solid #c8322b; padding-bottom: 1mm; break-after: avoid; }
+  h3 { font-size: 11pt; margin: 4mm 0 1mm; break-after: avoid; }
+  p { margin: 0 0 2mm; }
+  ul { margin: 0 0 2mm; padding-left: 5mm; }
+  table { border-collapse: collapse; width: 100%; break-inside: avoid; }
+  td, th { border: 1px solid #d3d8df; padding: 1.2mm 2mm; text-align: left; vertical-align: top; }
+  th { background: #f1f3f5; }
+  .page { break-before: page; }
+  .page h2:first-child { margin-top: 0; }
+  .colors { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 6mm; }
+  .swatch { display: flex; gap: 3mm; align-items: center; break-inside: avoid; font-size: 9.5pt; }
+  .swatch span { width: 14mm; height: 10mm; border: 1px solid #aab1bc; border-radius: 1.5mm; flex: none; }
+  .real { display: flex; gap: 6mm; align-items: center; }
+  img { display: block; image-rendering: pixelated; }
+  .real img { width: 40.8mm; height: 30.6mm; }
+  .gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm 6mm; }
+  figure { margin: 0; break-inside: avoid; }
+  figure img { width: 100%; border: 1px solid #aab1bc; }
+  figcaption { font-size: 9.5pt; margin-top: 1mm; }
+  pre { background: #f1f3f5; padding: 3mm; border-radius: 2mm; font: 9pt/1.4 Consolas, monospace; break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<h1>Study Tracker – dizajn brief</h1>
+<p>Mali stolni uređaj koji studentici medicine mjeri i bilježi učenje. Tražim pomoć oko izgleda i korištenja sučelja (UI/UX). Uz ovaj dokument ide <b>study-tracker-demo.html</b>: otvori ga u pregledniku (dvoklik) i isprobaj uređaj.</p>
+
+<h2>Kako se koristi</h2>
+<ul>
+  <li>Blok učenja broji vrijeme <b>prema gore</b>. Kad dosegne cilj (npr. 25 min), uređaj nježno podsjeti zvukom i bojom, ali <b>broji dalje</b>. Učenje završava samo kad ona to sama odabere. Zatim slijedi pauza.</li>
+  <li>Vrijeme i broj blokova zapisuju se po predmetu. Postoje statistika po danima i tjednima, postavke i čuvar zaslona s EKG linijom i satom.</li>
+</ul>
+
+<h2>Pravila koja dizajn mora poštovati</h2>
+<ul>
+  <li><b>Ništa je ne smije prekidati niti prisilno zaustavljati.</b></li>
+  <li>Korisnica nije tehnička osoba: svaki zaslon mora biti jasan bez uputa.</li>
+  <li>Slučajan okret ili klik ne smije završiti učenje ni obrisati podatke.</li>
+  <li>Samo <b>jedan kotačić</b> koji se okreće (20 koraka po krugu) i pritišće: kratki klik i dugi pritisak (0,8 s). Nema dodira ni drugih tipki.</li>
+  <li>Tekst na uređaju je na hrvatskom, s č, ć, š, đ, ž.</li>
+  <li>Nema odbrojavanja do ispita i sličnog stresa.</li>
+</ul>
+
+<h2>Zaslon</h2>
+<div class="real">
+  <img src="{{screen:studying}}" alt="Zaslon u stvarnoj veličini">
+  <div>
+    <p><b>320 × 240 piksela</b>, položeno, dijagonala <b>2 inča</b> (oko 41 × 31 mm).</p>
+    <p>Slika lijevo je u stvarnoj veličini kad se ovaj dokument ispiše ili gleda na 100 %. Zaslon gleda s radnog stola, pa sitan i blijed tekst teško prolazi.</p>
+    <p>Boje na pravom LCD-u izgledaju nešto drukčije nego na monitoru.</p>
+  </div>
+</div>
+
+<h2>Sadašnje boje</h2>
+<p>Zaslon prikazuje 65 536 boja (RGB565), pa se svaka boja malo zaokruži, a blagi prijelazi mogu imati vidljive pruge.</p>
+<div class="colors">
+{{colors}}
+</div>
+
+<h2>Sadašnji fontovi</h2>
+<table>
+  <tr><th>Namjena</th><th>Font</th><th>Visina</th></tr>
+  <tr><td>upute i sporedni tekst</td><td>Helvetica Regular</td><td>12 px</td></tr>
+  <tr><td>redovi u popisima</td><td>Helvetica Bold</td><td>14 px</td></tr>
+  <tr><td>naslovi i nazivi predmeta</td><td>Helvetica Bold</td><td>18 px</td></tr>
+  <tr><td>sat i štoperica (samo znamenke i dvotočka)</td><td>Logisoso</td><td>42 px</td></tr>
+</table>
+<p style="margin-top:2mm">To su bitmap fontovi fiksne veličine, bez zaglađivanja rubova. Drugi fontovi i veličine mogući su iz zbirke <a href="https://github.com/olikraus/u8g2/wiki/fntlistall">u8g2 fontova</a> (potrebni su oni koji imaju hrvatska slova). Vlastiti font moguć je, ali traži pretvaranje i provjeru.</p>
+
+<h2>Što je lako, a što teško izvesti</h2>
+<table>
+  <tr><th>Lako</th><th>Izvedivo uz više posla</th><th>Izbjegavati</th></tr>
+  <tr>
+    <td>boje, tekstovi, razmaci i raspored<br>pravokutnici, zaobljeni uglovi, krugovi, linije<br>drugi font iz zbirke</td>
+    <td>nove ikone (sada su složene od jednostavnih oblika)<br>sličice u pikselima<br>drukčiji tok izbornika<br>male animacije na malom dijelu zaslona</td>
+    <td>prijelazi i animacije preko cijelog zaslona (iscrtavanje cijelog zaslona vidi se kao prebrisavanje, oko 0,12 s)<br>prozirnost, sjene, zamućenja<br>zaglađen (anti-aliased) tekst</td>
+  </tr>
+</table>
+<p style="margin-top:2mm">Nazivi predmeta mogu biti vrlo dugi (i preko 80 znakova). Sada tekst koji ne stane klizi ulijevo ili završava s „...“.</p>
+
+<h2>Što mi poslati natrag</h2>
+<ul>
+  <li>Skice ili mockupe zaslona u veličini <b>320 × 240 px</b> (Figma, Photoshop ili na papiru).</li>
+  <li>Boje kao hex vrijednosti i nazive fontova i veličina.</li>
+  <li>Komentare: što je nejasno, što smeta, što bi promijenila u načinu korištenja.</li>
+</ul>
+<p>U demu postoji gumb za spremanje slike zaslona (PNG), pa se boje mogu očitati pipetom i crtati preko postojećeg zaslona.</p>
+
+<div class="page">
+<h2>Tok zaslona</h2>
+<pre>Početna ── klik ──▶ izbornik
+  ├─ Počni ───────▶ Učenje ── klik ──▶ Pauza/Nastavi · Završi · Postavke
+  │                                      Završi ──▶ Pauza (odmor) ──▶ Novi blok · Početna
+  ├─ Predmet ─────▶ popis predmeta (dugi pritisak: omiljeni)
+  │                   ├─ Izborni predmeti
+  │                   └─ Druga godina / semestar ──▶ godina ──▶ zimski ili ljetni
+  ├─ Statistika ──▶ danas ◀─ okret ─▶ tjedni
+  └─ Postavke ────▶ semestar, cilj učenja, svjetlina
+                      ├─ Zvuk
+                      ├─ Datum i vrijeme
+                      └─ Poništi brojače ──▶ potvrda
+
+Početna bez diranja 2 minute ──▶ čuvar zaslona</pre>
+
+<h2>Svi zasloni</h2>
+<p>Slike su stvarni prikaz programa s izmišljenim podacima o učenju.</p>
+<div class="gallery">
+  <figure><img src="{{screen:home}}"><figcaption>Početna</figcaption></figure>
+  <figure><img src="{{screen:homeMenu}}"><figcaption>Izbornik na početnoj</figcaption></figure>
+  <figure><img src="{{screen:studying}}"><figcaption>Učenje</figcaption></figure>
+  <figure><img src="{{screen:studyingMenu}}"><figcaption>Izbornik tijekom učenja</figcaption></figure>
+  <figure><img src="{{screen:paused}}"><figcaption>Pauzirano učenje</figcaption></figure>
+  <figure><img src="{{screen:targetReached}}"><figcaption>Cilj postignut</figcaption></figure>
+  <figure><img src="{{screen:restored}}"><figcaption>Blok vraćen nakon nestanka struje</figcaption></figure>
+  <figure><img src="{{screen:break}}"><figcaption>Odmor nakon bloka</figcaption></figure>
+  <figure><img src="{{screen:breakMenu}}"><figcaption>Izbornik na odmoru</figcaption></figure>
+  <figure><img src="{{screen:picker}}"><figcaption>Popis predmeta</figcaption></figure>
+  <figure><img src="{{screen:pickerEnd}}"><figcaption>Kraj popisa predmeta</figcaption></figure>
+  <figure><img src="{{screen:electives}}"><figcaption>Izborni predmeti</figcaption></figure>
+  <figure><img src="{{screen:years}}"><figcaption>Odabir godine</figcaption></figure>
+  <figure><img src="{{screen:half}}"><figcaption>Odabir semestra</figcaption></figure>
+  <figure><img src="{{screen:switchSemester}}"><figcaption>Pitanje o promjeni semestra</figcaption></figure>
+  <figure><img src="{{screen:statsToday}}"><figcaption>Statistika: danas</figcaption></figure>
+  <figure><img src="{{screen:statsWeek}}"><figcaption>Statistika: tjedan</figcaption></figure>
+  <figure><img src="{{screen:settings}}"><figcaption>Postavke</figcaption></figure>
+  <figure><img src="{{screen:settingsEdit}}"><figcaption>Mijenjanje vrijednosti</figcaption></figure>
+  <figure><img src="{{screen:sound}}"><figcaption>Zvuk</figcaption></figure>
+  <figure><img src="{{screen:clockSet}}"><figcaption>Datum i vrijeme</figcaption></figure>
+  <figure><img src="{{screen:resetMenu}}"><figcaption>Poništavanje brojača</figcaption></figure>
+  <figure><img src="{{screen:resetConfirm}}"><figcaption>Potvrda poništavanja</figcaption></figure>
+  <figure><img src="{{screen:screensaver}}"><figcaption>Čuvar zaslona</figcaption></figure>
+</div>
+</div>
+</body>
+</html>
